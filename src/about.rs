@@ -1,0 +1,15 @@
+use eframe::egui;
+
+pub fn show_about_window(ctx: &egui::Context, open: &mut bool) {
+    egui::Window::new("关于此软件")
+        .open(open)
+        .resizable(false)
+        .collapsible(false)
+        .show(ctx, |ui| {
+            ui.heading("AppData Cleaner");
+            ui.label("作者: [Your Name]");
+            ui.label("源代码仓库: https://github.com/your-repo");
+            ui.label("许可证: MIT");
+            ui.label("版本: 1.0.0");
+        });
+}

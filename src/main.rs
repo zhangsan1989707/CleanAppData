@@ -1,9 +1,9 @@
+mod about;
 mod delete;
 mod scanner;
 mod ui;
 mod utils;
 
-use eframe::App;
 use ui::AppDataCleaner;
 
 fn main() -> Result<(), eframe::Error> {
