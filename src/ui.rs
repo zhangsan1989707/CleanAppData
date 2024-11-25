@@ -1,3 +1,4 @@
+use crate::about;
 use crate::delete;
 use crate::scanner;
 use crate::utils;
@@ -7,6 +8,7 @@ pub struct AppDataCleaner {
     is_scanning: bool,
     current_folder: Option<String>,
     folder_data: Vec<(String, u64)>,
+    show_about_window: bool, // 确保字段存在
 }
 
 impl Default for AppDataCleaner {
@@ -15,30 +17,29 @@ impl Default for AppDataCleaner {
             is_scanning: false,
             current_folder: None,
             folder_data: vec![],
+            show_about_window: false, // 默认值
         }
     }
 }
 
-// 中文字体
 impl AppDataCleaner {
     fn setup_custom_fonts(&self, ctx: &egui::Context) {
-        use eframe::egui::{FontData, FontDefinitions, FontFamily};
+        use eframe::egui::{FontData, FontDefinitions};
 
         let mut fonts = FontDefinitions::default();
 
-        // 替换默认字体为自定义字体
         fonts.font_data.insert(
             "custom_font".to_owned(),
             FontData::from_static(include_bytes!("../assets/SourceHanSansCN-Regular.otf")),
         );
 
-        // 覆盖所有字体设置
+        fonts.families.insert(
+            egui::FontFamily::Proportional,
+            vec!["custom_font".to_owned()],
+        );
         fonts
             .families
-            .insert(FontFamily::Proportional, vec!["custom_font".to_owned()]);
-        fonts
-            .families
-            .insert(FontFamily::Monospace, vec!["custom_font".to_owned()]);
+            .insert(egui::FontFamily::Monospace, vec!["custom_font".to_owned()]);
 
         ctx.set_fonts(fonts);
     }
@@ -46,11 +47,19 @@ impl AppDataCleaner {
 
 impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // 调用字体设置方法
         self.setup_custom_fonts(ctx);
 
+        // 顶部菜单
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            ui.menu_button("菜单", |ui| {
+                if ui.button("关于").clicked() {
+                    self.show_about_window = true; // 打开关于窗口
+                    ui.close_menu();
+                }
+            });
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
-            // "立即扫描" 按钮逻辑
             if ui.button("立即扫描").clicked() && !self.is_scanning {
                 self.is_scanning = true;
                 self.folder_data.clear();
@@ -70,39 +79,38 @@ impl eframe::App for AppDataCleaner {
                 ui.label("扫描中...");
             }
 
-            // 滚动区域显示扫描结果
             ScrollArea::vertical().show(ui, |ui| {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
-                    // 表头
                     ui.label("文件夹");
                     ui.label("大小");
                     ui.label("使用软件");
                     ui.label("操作");
                     ui.end_row();
 
-                    // 表格内容
                     for (folder, size) in &self.folder_data {
                         ui.label(folder);
                         ui.label(utils::format_size(*size));
                         ui.label("未知");
 
-                        // 操作按钮
                         if ui.button("彻底删除").clicked() {
-                            let full_path = format!("{}/{}", utils::get_appdata_dir(), folder);
+                            let folder_name = folder.clone();
+                            let full_path = format!("{}/{}", utils::get_appdata_dir(), folder_name);
                             if let Err(err) = delete::delete_folder(&full_path) {
                                 eprintln!("Error: {}", err);
-                            } else {
-                                println!("Successfully deleted folder: {}", full_path);
                             }
                         }
-
                         if ui.button("移动").clicked() {
-                            // 移动逻辑（占位）
+                            // 移动逻辑
                         }
                         ui.end_row();
                     }
                 });
             });
         });
+
+        // 关于窗口
+        if self.show_about_window {
+            about::show_about_window(ctx, &mut self.show_about_window);
+        }
     }
 }
