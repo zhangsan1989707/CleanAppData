@@ -1,4 +1,5 @@
 use crate::about;
+use crate::confirmation;
 use crate::delete;
 use crate::scanner;
 use crate::utils;
@@ -8,7 +9,8 @@ pub struct AppDataCleaner {
     is_scanning: bool,
     current_folder: Option<String>,
     folder_data: Vec<(String, u64)>,
-    show_about_window: bool, // 确保字段存在
+    show_about_window: bool,                // 确保字段存在
+    confirm_delete: Option<(String, bool)>, // 保存要确认删除的文件夹状态
 }
 
 impl Default for AppDataCleaner {
@@ -18,6 +20,7 @@ impl Default for AppDataCleaner {
             current_folder: None,
             folder_data: vec![],
             show_about_window: false, // 默认值
+            confirm_delete: None,     // 初始化为 None
         }
     }
 }
@@ -48,6 +51,19 @@ impl AppDataCleaner {
 impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
+
+        if let Some((folder, _confirm)) = &self.confirm_delete {
+            if let Some(result) =
+                confirmation::show_confirmation(ctx, &format!("确定要删除文件夹 {} 吗？", folder))
+            {
+                if result {
+                    if let Err(err) = delete::delete_folder(&folder) {
+                        eprintln!("删除失败: {}", err);
+                    }
+                }
+                self.confirm_delete = None;
+            }
+        }
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
@@ -93,6 +109,7 @@ impl eframe::App for AppDataCleaner {
                         ui.label("未知");
 
                         if ui.button("彻底删除").clicked() {
+                            self.confirm_delete = Some((folder.clone(), false));
                             let folder_name = folder.clone();
                             let full_path = format!("{}/{}", utils::get_appdata_dir(), folder_name);
                             if let Err(err) = delete::delete_folder(&full_path) {

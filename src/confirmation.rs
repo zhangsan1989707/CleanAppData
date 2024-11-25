@@ -15,6 +15,7 @@ pub fn show_confirmation(ctx: &egui::Context, message: &str) -> Option<bool> {
                 }
                 if ui.button("取消").clicked() {
                     result = Some(false);
+                    println!("用户取消操作");
                 }
             });
         });

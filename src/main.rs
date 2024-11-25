@@ -1,4 +1,5 @@
 mod about;
+mod confirmation;
 mod delete;
 mod scanner;
 mod ui;
