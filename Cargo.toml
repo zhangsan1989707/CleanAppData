@@ -1,0 +1,11 @@
+[package]
+name = "AppDataCleaner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+egui = "0.29.1"
+eframe = "0.29.1"
+dirs-next = "2.0"
+tokio = { version = "1", features = ["full"] }
+walkdir = "2.4"
