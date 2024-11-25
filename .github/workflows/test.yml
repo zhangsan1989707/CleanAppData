@@ -2,9 +2,12 @@ name: 测试
 
 on:
   push:
-    branches: [ "main" ]
+    paths-ignore: |
+      - README.md
+      - LICENSE
+      - readme/**
+
   pull_request:
-    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
