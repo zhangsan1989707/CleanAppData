@@ -48,7 +48,9 @@ impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // 调用字体设置方法
         self.setup_custom_fonts(ctx);
+
         egui::CentralPanel::default().show(ctx, |ui| {
+            // "立即扫描" 按钮逻辑
             if ui.button("立即扫描").clicked() && !self.is_scanning {
                 self.is_scanning = true;
                 self.folder_data.clear();
@@ -68,27 +70,34 @@ impl eframe::App for AppDataCleaner {
                 ui.label("扫描中...");
             }
 
+            // 滚动区域显示扫描结果
             ScrollArea::vertical().show(ui, |ui| {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
+                    // 表头
                     ui.label("文件夹");
                     ui.label("大小");
                     ui.label("使用软件");
                     ui.label("操作");
                     ui.end_row();
 
-                    for (folder_name, folder_size) in &self.folder_data {
-                        ui.label(folder_name);
-                        ui.label(utils::format_size(*folder_size));
+                    // 表格内容
+                    for (folder, size) in &self.folder_data {
+                        ui.label(folder);
+                        ui.label(utils::format_size(*size));
                         ui.label("未知");
 
+                        // 操作按钮
                         if ui.button("彻底删除").clicked() {
-                            // 调用 delete.rs 的删除逻辑
-                            if let Err(err) = delete::delete_folder(folder_name) {
+                            let full_path = format!("{}/{}", utils::get_appdata_dir(), folder);
+                            if let Err(err) = delete::delete_folder(&full_path) {
                                 eprintln!("Error: {}", err);
+                            } else {
+                                println!("Successfully deleted folder: {}", full_path);
                             }
                         }
+
                         if ui.button("移动").clicked() {
-                            // 移动逻辑
+                            // 移动逻辑（占位）
                         }
                         ui.end_row();
                     }

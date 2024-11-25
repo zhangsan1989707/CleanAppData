@@ -8,3 +8,9 @@ pub fn format_size(size: u64) -> String {
     }
     format!("{:.2} {}", size, UNITS[unit])
 }
+
+use std::env;
+
+pub fn get_appdata_dir() -> String {
+    env::var("APPDATA").unwrap_or_else(|_| "C:\\Users\\Default\\AppData\\Roaming".to_string())
+}
