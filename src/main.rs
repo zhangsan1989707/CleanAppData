@@ -1,3 +1,4 @@
+mod delete;
 mod scanner;
 mod ui;
 mod utils;

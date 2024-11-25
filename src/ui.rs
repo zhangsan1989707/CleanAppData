@@ -1,3 +1,4 @@
+use crate::delete;
 use crate::scanner;
 use crate::utils;
 use eframe::egui::{self, Grid, ScrollArea};
@@ -18,6 +19,7 @@ impl Default for AppDataCleaner {
     }
 }
 
+// 中文字体
 impl AppDataCleaner {
     fn setup_custom_fonts(&self, ctx: &egui::Context) {
         use eframe::egui::{FontData, FontDefinitions, FontFamily};
@@ -47,7 +49,7 @@ impl eframe::App for AppDataCleaner {
         // 调用字体设置方法
         self.setup_custom_fonts(ctx);
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.label("中文测试：你好，世界！");
+            //ui.label("中文测试：你好，世界！");
             if ui.button("立即扫描").clicked() && !self.is_scanning {
                 self.is_scanning = true;
                 self.folder_data.clear();
@@ -82,6 +84,9 @@ impl eframe::App for AppDataCleaner {
 
                         if ui.button("彻底删除").clicked() {
                             // 删除逻辑
+                            if let Err(err) = delete::delete_folder(folder_name) {
+                                eprintln!("Error: {}", err);
+                            }
                         }
                         if ui.button("移动").clicked() {
                             // 移动逻辑
