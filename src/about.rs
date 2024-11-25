@@ -17,6 +17,10 @@ pub fn show_about_window(ctx: &egui::Context, open: &mut bool) {
                 ui.label("源代码仓库:");
                 ui.hyperlink("https://github.com/TC999/AppDataCleaner");
             });
+            ui.horizontal(|ui| {
+                // BUG 反馈
+                ui.hyperlink_to("议题", "https://github.com/TC999/AppDataCleaner/issues");
+            });
             ui.label("许可证: GPL-3.0");
             ui.label("版本: 1.0.0");
         });
