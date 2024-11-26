@@ -1,10 +1,10 @@
 # APPDATACleaner - 适用于 Windows 系统的 appdata 文件夹清理工具
-完全开源免费的清理 Appdata 的小工具！完全使用 ChatGPT-4o 生成！
+完全开源免费的清理 Appdata 的小工具！完全使用 ChatGPT 生成！
 
 <details>
 <summary><h2>开发原因</h2></summary>
 <p>Windows系统安装的软件卸载时，即使使用了专业卸载工具卸载后，appdata 中的文件仍旧不会删除，故开发此软件清理。</p>
-<p>本工具使用 Rust 编写，使用 ChatGPT-4o 生成，并使用 egui 构建 GUI。</p>
+<p>本工具使用 Rust 编写，使用 ChatGPT 生成，并使用 egui 构建 GUI。</p>
 <p>本工具完全开源免费，欢迎各位大佬贡献代码。</p>
 </details>
 
@@ -59,6 +59,7 @@ cargo build --release
 - [ ] 优化界面
 - [ ] 优化代码
 - [ ] 添加软件图标
+- [ ] 项目网站
 - [ ] 其他……
 ## ✨ 贡献
 1. 复刻本仓库
@@ -69,7 +70,7 @@ cargo build --release
 详情请参考[贡献指南](CONTRIBUTING.md)。
 ## 鸣谢
 - [TC999](https://github.com/TC999) - 作者
-- [ChatGPT-4o](https://chatgpt.com/) - 代码编写
+- [ChatGPT](https://chatgpt.com/) - 代码编写
 - [egui](https://github.com/emilk/egui) - GUI 框架
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
