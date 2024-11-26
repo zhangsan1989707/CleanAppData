@@ -65,6 +65,8 @@ cargo build --release
 2. 创建一个分支并以你修改的功能命名，注意每个功能单独一个代码文件（作为模块导入）
 3. 提交你的修改
 4. 创建一个拉取请求
+
+详情请参考[贡献指南](CONTRIBUTING.md)。
 ## 鸣谢
 - [TC999](https://github.com/TC999) - 作者
 - [ChatGPT-4o](https://chatgpt.com/) - 代码编写
