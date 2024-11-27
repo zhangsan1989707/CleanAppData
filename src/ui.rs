@@ -17,6 +17,7 @@ pub struct AppDataCleaner {
     tx: Option<Sender<(String, u64)>>,
     rx: Option<Receiver<(String, u64)>>,
     is_logging_enabled: bool,  // 新增字段
+    pub current_folder_type: String, // 新增字段
 }
 
 impl Default for AppDataCleaner {
