@@ -63,17 +63,16 @@ impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
 
-        if let Some((folder, _confirm)) = &self.confirm_delete {
-            if let Some(result) =
-                confirmation::show_confirmation(ctx, &format!("确定要删除文件夹 {} 吗？", folder))
-            {
-                if result {
-                    if let Err(err) = delete::delete_folder(&folder) {
-                        eprintln!("删除失败: {}", err);
-                        logger::log_info(&format!("删除失败: {}", err));
+        if let Some((folder_name, _)) = &self.confirm_delete {
+            let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
+            if let Some(confirm) = confirmation::show_confirmation(ctx, &message) {
+                if confirm {
+                    let full_path = format!("{}/{}", utils::get_appdata_dir(), folder_name);
+                    if let Err(err) = delete::delete_folder(&full_path) {
+                        eprintln!("Error: {}", err);
                     }
                 }
-                self.confirm_delete = None;
+                self.confirm_delete = None; // 无论确认还是取消，都清除状态
             }
         }
 
@@ -142,9 +141,16 @@ impl eframe::App for AppDataCleaner {
                         if ui.button("彻底删除").clicked() {
                             self.confirm_delete = Some((folder.clone(), false));
                             let folder_name = folder.clone();
-                            let full_path = format!("{}/{}", utils::get_appdata_dir(), folder_name);
-                            if let Err(err) = delete::delete_folder(&full_path) {
-                                eprintln!("Error: {}", err);
+                        
+                            // 假设存储了当前选中的 folder 类型
+                            let folder_type = self.current_folder_type.clone(); // 例如 "Local"
+                            if let Some(base_path) = utils::get_appdata_dir(&folder_type) {
+                                let full_path = base_path.join(&folder_name);
+                                if let Err(err) = delete::delete_folder(&full_path) {
+                                    eprintln!("Error: {}", err);
+                                }
+                            } else {
+                                eprintln!("无法获取 {} 文件夹路径", folder_type);
                             }
                         }
                         if ui.button("移动").clicked() {
