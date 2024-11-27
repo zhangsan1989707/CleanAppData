@@ -75,12 +75,13 @@ impl eframe::App for AppDataCleaner {
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            ui.menu_button("菜单", |ui| {
-                if ui.button("关于").clicked() {
-                    self.show_about_window = true; // 打开关于窗口
-                    ui.close_menu();
-                }
-            });
+            if ui.button("关于").clicked() {
+                self.show_about_window = true; // 打开关于窗口
+                ui.close_menu();
+            }
+            // 添加日志启用/禁用选项
+                ui.separator();
+                ui.checkbox(&mut self.is_logging_enabled, "启用日志");
             ui.menu_button("切换文件夹", |ui| {
                 if ui.button("Roaming").clicked() {
                 self.selected_appdata_folder = "Roaming".to_string();
@@ -154,6 +155,14 @@ impl eframe::App for AppDataCleaner {
         // 关于窗口
         if self.show_about_window {
             about::show_about_window(ctx, &mut self.show_about_window);
+        }
+        // 根据日志开关决定是否记录日志
+        if self.is_logging_enabled {
+            // 启用日志记录
+            log::info!("日志系统已启用");
+        } else {
+            // 关闭日志记录
+            log::info!("日志系统已禁用");
         }
     }
 }
