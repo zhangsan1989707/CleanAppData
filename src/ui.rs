@@ -15,6 +15,7 @@ pub struct AppDataCleaner {
     selected_appdata_folder: String, // 新增字段
     tx: Option<Sender<(String, u64)>>,
     rx: Option<Receiver<(String, u64)>>,
+    is_logging_enabled: bool,  // 新增字段
 }
 
 impl Default for AppDataCleaner {
@@ -29,6 +30,7 @@ impl Default for AppDataCleaner {
             selected_appdata_folder: "Roaming".to_string(), // 默认值为 Roaming
             tx: Some(tx),
             rx: Some(rx),
+            is_logging_enabled: false,  // 默认禁用日志
         }
     }
 }
