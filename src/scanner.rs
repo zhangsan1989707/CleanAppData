@@ -3,8 +3,10 @@ use std::thread;
 use std::{fs, path::PathBuf};
 
 use dirs_next as dirs;
+use crate::logger; // 引入日志模块
 
 pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
+    logger::log_info(&format!("开始扫描 {} 类型的文件夹", folder_type));
     let appdata_dir = match folder_type {
         "Roaming" => dirs::data_dir(),
         "Local" => dirs::cache_dir(),
