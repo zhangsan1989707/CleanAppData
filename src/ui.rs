@@ -3,6 +3,7 @@ use crate::confirmation;
 use crate::delete;
 use crate::scanner;
 use crate::utils;
+use crate::logger; // 导入 logger 模块
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
 
@@ -69,6 +70,7 @@ impl eframe::App for AppDataCleaner {
                 if result {
                     if let Err(err) = delete::delete_folder(&folder) {
                         eprintln!("删除失败: {}", err);
+                        logger::log_info(&format!("删除失败: {}", err));
                     }
                 }
                 self.confirm_delete = None;

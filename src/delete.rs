@@ -9,7 +9,7 @@ pub fn delete_folder(folder_path: &str) -> Result<(), String> {
     let path = Path::new(folder_path);
 
     if !path.exists() {
-        //println!("文件夹不存在.".to_string());
+        println!("文件夹不存在.");
         let error_msg = "文件夹不存在.".to_string();
         logger::log_error(&error_msg);
         return Err(error_msg);
@@ -23,7 +23,7 @@ pub fn delete_folder(folder_path: &str) -> Result<(), String> {
             error_msg
         })
     } else {
-        //println!("路径不是目录.".to_string());
+        println!("路径不是目录.");
         let error_msg = "路径不是目录.".to_string();
         logger::log_error(&error_msg);
         Err(error_msg)

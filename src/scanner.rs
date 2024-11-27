@@ -1,14 +1,17 @@
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::{fs, path::PathBuf};
-use std::fs::{self, DirEntry};
 use std::path::Path;
 
 use dirs_next as dirs;
 use crate::logger; // 引入日志模块
 
 pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
+    println!("开始扫描 {} 类型的文件夹", folder_type);
+    // 记录日志
     logger::log_info(&format!("开始扫描 {} 类型的文件夹", folder_type));
+
+    // 根据 folder_type 确定要扫描的目录
     let appdata_dir = match folder_type {
         "Roaming" => dirs::data_dir(),
         "Local" => dirs::cache_dir(),
@@ -16,6 +19,7 @@ pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
         _ => None,
     };
 
+    // 如果找到有效的目录，开始扫描
     if let Some(appdata_dir) = appdata_dir {
         thread::spawn(move || {
             if let Ok(entries) = fs::read_dir(&appdata_dir) {
@@ -24,7 +28,7 @@ pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
                         if metadata.is_dir() {
                             let folder_name = entry.file_name().to_string_lossy().to_string();
                             let size = calculate_folder_size(&entry.path());
-                            println!("Folder: {:?}, Size: {}", path.display(), size); // 打印文件夹路径和大小
+                            // 发送文件夹大小数据
                             tx.send((folder_name, size)).unwrap();
                         }
                     }
@@ -56,4 +60,3 @@ fn calculate_folder_size(folder: &Path) -> u64 {
 
     size
 }
-
