@@ -17,6 +17,7 @@ pub struct AppDataCleaner {
     tx: Option<Sender<(String, u64)>>,
     rx: Option<Receiver<(String, u64)>>,
     is_logging_enabled: bool,  // 新增字段
+    //current_folder_type: String, // 新增字段
 }
 
 impl Default for AppDataCleaner {
@@ -63,17 +64,23 @@ impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
 
-        if let Some((folder, _confirm)) = &self.confirm_delete {
-            if let Some(result) =
-                confirmation::show_confirmation(ctx, &format!("确定要删除文件夹 {} 吗？", folder))
-            {
-                if result {
-                    if let Err(err) = delete::delete_folder(&folder) {
-                        eprintln!("删除失败: {}", err);
-                        logger::log_info(&format!("删除失败: {}", err));
+        // 删除确认弹窗逻辑
+        if let Some((folder_name, _)) = &self.confirm_delete {
+            let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
+            if let Some(confirm) = confirmation::show_confirmation(ctx, &message) {
+                if confirm {
+                    if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
+                        let full_path = base_path.join(folder_name);
+                        if let Err(err) = delete::delete_folder(&full_path) {
+                            eprintln!("Error: {}", err);
+                            logger::log_error(&format!("Error: {}", err));
+                        }
+                    } else {
+                        eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
+                        logger::log_error(&format!("无法获取 {} 文件夹路径", self.selected_appdata_folder));
                     }
                 }
-                self.confirm_delete = None;
+                self.confirm_delete = None; // 清除状态
             }
         }
 
@@ -83,13 +90,14 @@ impl eframe::App for AppDataCleaner {
                 self.show_about_window = true; // 打开关于窗口
                 ui.close_menu();
             }
-            // 添加日志启用/禁用选项
-                ui.separator();
-                ui.checkbox(&mut self.is_logging_enabled, "启用日志");
+
+            ui.separator();
+            ui.checkbox(&mut self.is_logging_enabled, "启用日志");
+
             ui.menu_button("切换文件夹", |ui| {
                 if ui.button("Roaming").clicked() {
-                self.selected_appdata_folder = "Roaming".to_string();
-                ui.close_menu();
+                    self.selected_appdata_folder = "Roaming".to_string();
+                    ui.close_menu();
                 }
                 if ui.button("Local").clicked() {
                     self.selected_appdata_folder = "Local".to_string();
@@ -100,6 +108,7 @@ impl eframe::App for AppDataCleaner {
                     ui.close_menu();
                 }
             });
+            ui.label(format!("当前目标: {}", self.selected_appdata_folder));
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -125,7 +134,6 @@ impl eframe::App for AppDataCleaner {
                 ui.label("扫描完成");
             }
 
-
             ScrollArea::vertical().show(ui, |ui| {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
                     ui.label("文件夹");
@@ -141,11 +149,6 @@ impl eframe::App for AppDataCleaner {
 
                         if ui.button("彻底删除").clicked() {
                             self.confirm_delete = Some((folder.clone(), false));
-                            let folder_name = folder.clone();
-                            let full_path = format!("{}/{}", utils::get_appdata_dir(), folder_name);
-                            if let Err(err) = delete::delete_folder(&full_path) {
-                                eprintln!("Error: {}", err);
-                            }
                         }
                         if ui.button("移动").clicked() {
                             // 移动逻辑
@@ -160,12 +163,11 @@ impl eframe::App for AppDataCleaner {
         if self.show_about_window {
             about::show_about_window(ctx, &mut self.show_about_window);
         }
+
         // 根据日志开关决定是否记录日志
         if self.is_logging_enabled {
-            // 启用日志记录
             log::info!("日志系统已启用");
         } else {
-            // 关闭日志记录
             log::info!("日志系统已禁用");
         }
     }

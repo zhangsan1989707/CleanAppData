@@ -11,6 +11,15 @@ pub fn format_size(size: u64) -> String {
 
 use std::env;
 
-pub fn get_appdata_dir() -> String {
-    env::var("APPDATA").unwrap_or_else(|_| "C:\\Users\\Default\\AppData\\Roaming".to_string())
+use dirs_next as dirs;
+use std::path::PathBuf;
+
+pub fn get_appdata_dir(folder_type: &str) -> Option<PathBuf> {
+    match folder_type {
+        "Roaming" => dirs::data_dir(),
+        "Local" => dirs::cache_dir(),
+        "LocalLow" => Some(PathBuf::from("C:/Users/Default/AppData/LocalLow")), 
+        _ => None,
+    }
 }
+

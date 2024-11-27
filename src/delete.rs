@@ -1,30 +1,30 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use crate::logger;
 
-pub fn delete_folder(folder_path: &str) -> Result<(), String> {
-    println!("尝试删除文件夹: {}", folder_path);
-    logger::log_info(&format!("尝试删除文件夹: {}", folder_path));
+/// 删除文件夹，接受 `PathBuf` 类型
+pub fn delete_folder(folder_path: &PathBuf) -> Result<(), String> {
+    let folder_path_str = folder_path.to_string_lossy();
+    println!("尝试删除文件夹: {}", folder_path_str);
+    logger::log_info(&format!("尝试删除文件夹: {}", folder_path_str));
 
-    let path = Path::new(folder_path);
-
-    if !path.exists() {
-        println!("文件夹不存在.");
-        let error_msg = "文件夹不存在.".to_string();
+    if !folder_path.exists() {
+        let error_msg = format!("文件夹不存在: {}", folder_path_str);
+        println!("{}", error_msg);
         logger::log_error(&error_msg);
         return Err(error_msg);
     }
 
-    if path.is_dir() {
-        fs::remove_dir_all(path).map_err(|e| {
-            println!("删除失败: {}", e);
-            let error_msg = format!("删除失败: {}", e);
+    if folder_path.is_dir() {
+        fs::remove_dir_all(folder_path).map_err(|e| {
+            let error_msg = format!("删除失败: {} - 错误: {}", folder_path_str, e);
+            println!("{}", error_msg);
             logger::log_error(&error_msg);
             error_msg
         })
     } else {
-        println!("路径不是目录.");
-        let error_msg = "路径不是目录.".to_string();
+        let error_msg = format!("路径不是目录: {}", folder_path_str);
+        println!("{}", error_msg);
         logger::log_error(&error_msg);
         Err(error_msg)
     }
