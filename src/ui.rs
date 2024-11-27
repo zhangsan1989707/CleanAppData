@@ -4,6 +4,7 @@ use crate::delete;
 use crate::scanner;
 use crate::utils;
 use eframe::egui::{self, Grid, ScrollArea};
+use std::sync::mpsc::{Sender, Receiver};
 
 pub struct AppDataCleaner {
     is_scanning: bool,
@@ -11,16 +12,23 @@ pub struct AppDataCleaner {
     folder_data: Vec<(String, u64)>,
     show_about_window: bool,                // 确保字段存在
     confirm_delete: Option<(String, bool)>, // 保存要确认删除的文件夹状态
+    selected_appdata_folder: String, // 新增字段
+    tx: Option<Sender<(String, u64)>>,
+    rx: Option<Receiver<(String, u64)>>,
 }
 
 impl Default for AppDataCleaner {
     fn default() -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
         Self {
             is_scanning: false,
             current_folder: None,
             folder_data: vec![],
             show_about_window: false, // 默认值
             confirm_delete: None,     // 初始化为 None
+            selected_appdata_folder: "Roaming".to_string(), // 默认值为 Roaming
+            tx: Some(tx),
+            rx: Some(rx),
         }
     }
 }
@@ -73,6 +81,20 @@ impl eframe::App for AppDataCleaner {
                     ui.close_menu();
                 }
             });
+            ui.menu_button("切换文件夹", |ui| {
+                if ui.button("Roaming").clicked() {
+                self.selected_appdata_folder = "Roaming".to_string();
+                ui.close_menu();
+                }
+                if ui.button("Local").clicked() {
+                    self.selected_appdata_folder = "Local".to_string();
+                    ui.close_menu();
+                }
+                if ui.button("LocalLow").clicked() {
+                    self.selected_appdata_folder = "LocalLow".to_string();
+                    ui.close_menu();
+                }
+            });
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -80,20 +102,24 @@ impl eframe::App for AppDataCleaner {
                 self.is_scanning = true;
                 self.folder_data.clear();
 
-                let (tx, rx) = std::sync::mpsc::channel();
-                std::thread::spawn(move || scanner::scan_appdata(tx));
+                let tx = self.tx.clone().unwrap();
+                let folder_type = self.selected_appdata_folder.clone();
 
-                while let Ok((folder, size)) = rx.recv() {
+                scanner::scan_appdata(tx, &folder_type);
+            }
+
+            if let Some(rx) = &self.rx {
+                while let Ok((folder, size)) = rx.try_recv() {
                     self.folder_data.push((folder, size));
                 }
-
-                self.is_scanning = false;
-                self.current_folder = None;
             }
 
             if self.is_scanning {
                 ui.label("扫描中...");
+            } else {
+                ui.label("扫描完成");
             }
+
 
             ScrollArea::vertical().show(ui, |ui| {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
