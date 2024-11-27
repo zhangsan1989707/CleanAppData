@@ -73,9 +73,11 @@ impl eframe::App for AppDataCleaner {
                         let full_path = base_path.join(folder_name);
                         if let Err(err) = delete::delete_folder(&full_path) {
                             eprintln!("Error: {}", err);
+                            logger::log_error(&format!("Error: {}", err));
                         }
                     } else {
                         eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
+                        logger::log_error(&format!("无法获取 {} 文件夹路径", self.selected_appdata_folder));
                     }
                 }
                 self.confirm_delete = None; // 清除状态
