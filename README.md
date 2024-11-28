@@ -122,14 +122,8 @@ cargo build --release
 [download-url]: https://github.com/TC999/AppDataCleaner/releases/latest "下载"
 [download-image]: https://custom-icon-badges.demolab.com/github/downloads/TC999/AppDataCleaner/total?style=flat&logo=download&label=%E4%B8%8B%E8%BD%BD%E6%95%B0&%3Fcolor%3Dblue "总下载数"
 
-[LemurBrowser-url]: https://lemurbrowser.com "狐猴浏览器"
-
 [license-url]: https://github.com/TC999/AppDataCleaner/blob/master/LICENSE "许可证"
 [license-image]: https://custom-icon-badges.demolab.com/github/license/TC999/AppDataCleaner?style=flat&logo=law&label=%E8%AE%B8%E5%8F%AF%E8%AF%81
-
-[Ungoogled-Chromuim-url]: https://ungoogled-software.github.io/ungoogled-chromium-binaries/ "Ungoogled-Chromuim 官网"
-
-[zhihu-enhance-url]: https://greasyfork.org/zh-CN/scripts/419081-%E7%9F%A5%E4%B9%8E%E5%A2%9E%E5%BC%BA "知乎增强"
 
 [github-doc-gpg-url]: https://docs.github.com/zh/authentication/managing-commit-signature-verification/generating-a-new-gpg-key "GPG签名"
 <!-- 链接结束 -->
