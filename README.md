@@ -19,6 +19,16 @@
 
 以上两种方法二选一，下载后直接解压运行即可。
 
+## 星标历史
+
+<a href="https://star-history.com/#TC999/AppDataCleaner&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=TC999/AppDataCleaner&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=TC999/AppDataCleaner&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=TC999/AppDataCleaner&type=Date" />
+ </picture>
+</a>
+
 ### 运行
 > [!caution]
 > 
@@ -37,7 +47,7 @@ git clone https://github.com/TC999/AppDataCleaner.git
 ```
 cd AppDataCleaner
 ```
-- 调试
+- 运行
 ```
 cargo run
 ```

@@ -1,6 +1,7 @@
 use eframe::egui;
 
 pub fn show_about_window(ctx: &egui::Context, open: &mut bool) {
+    let version = env!("CARGO_PKG_VERSION"); // 从环境变量读取版本号
     egui::Window::new("关于此软件")
         .open(open)
         .resizable(false)
@@ -22,6 +23,6 @@ pub fn show_about_window(ctx: &egui::Context, open: &mut bool) {
                 ui.hyperlink_to("议题", "https://github.com/TC999/AppDataCleaner/issues");
             });
             ui.label("许可证: GPL-3.0");
-            ui.label("版本: 1.0.0-dev");
+            ui.label(format!("版本: {}", version));
         });
 }
