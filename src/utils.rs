@@ -9,7 +9,7 @@ pub fn format_size(size: u64) -> String {
     format!("{:.2} {}", size, UNITS[unit])
 }
 
-use std::env;
+//use std::env;
 
 use dirs_next as dirs;
 use std::path::PathBuf;
