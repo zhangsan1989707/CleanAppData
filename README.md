@@ -75,6 +75,7 @@ cargo build --release
 - `Cargo.toml`: 依赖管理文件
 
 ## ✔ 待办
+- [ ] 白名单模块（防止误删，保护重要数据
 - [ ] 移动文件夹
 - [ ] 打开文件夹（一直测试失败，待解决
 - [ ] 多国语言支持（暂时不考虑，反正鬼佬也不用（不是
@@ -126,4 +127,3 @@ cargo build --release
 [license-image]: https://custom-icon-badges.demolab.com/github/license/TC999/AppDataCleaner?style=flat&logo=law&label=%E8%AE%B8%E5%8F%AF%E8%AF%81
 
 [github-doc-gpg-url]: https://docs.github.com/zh/authentication/managing-commit-signature-verification/generating-a-new-gpg-key "GPG签名"
-<!-- 链接结束 -->

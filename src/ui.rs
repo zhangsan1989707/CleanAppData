@@ -145,13 +145,13 @@ impl eframe::App for AppDataCleaner {
                     for (folder, size) in &self.folder_data {
                         ui.label(folder);
                         ui.label(utils::format_size(*size));
-                        ui.label("未知");
+                        ui.label("敬请期待");
 
                         if ui.button("彻底删除").clicked() {
                             self.confirm_delete = Some((folder.clone(), false));
                         }
                         if ui.button("移动").clicked() {
-                            // 移动逻辑
+                            // 移动逻辑 敬请期待
                         }
                         ui.end_row();
                     }
