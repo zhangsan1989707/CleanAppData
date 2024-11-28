@@ -1,9 +1,9 @@
 name: Bug 反馈
 description: 功能运行不正常 / 失效
 body:
-  - type: markdown
-    attributes:
-      value: |
+ # - type: markdown
+ #   attributes:
+  #    value: |
         # 默认您已阅读 [Issues 须知](https://github.com/the1812/Bilibili-Evolved/blob/preview/doc/issue-rules.md)
         # 请勿重复发起, 发之前记得看下[置顶问题 (Pinned issues)](https://github.com/the1812/Bilibili-Evolved/issues) (如果有的话), 以及[常见问题解答](https://github.com/the1812/Bilibili-Evolved/discussions/1301)
   - type: textarea
