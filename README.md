@@ -13,7 +13,7 @@
 
 <details>
 <summary><h2>开发原因</h2></summary>
-<p>Windows系统安装的软件卸载时，即使使用了专业卸载工具卸载后，appdata 中的文件仍旧不会删除，故开发此软件清理。</p>
+<p>Windows系统安装的软件卸载时，即使使用专业卸载工具卸载后，appdata 中的文件仍旧不会删除，故开发此软件清理。</p>
 <p>本工具使用 Rust 编写，使用 ChatGPT 生成，并使用 egui 构建 GUI。</p>
 <p>本工具完全开源免费，欢迎各位大佬贡献代码。</p>
 </details>
