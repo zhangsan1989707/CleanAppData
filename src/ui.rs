@@ -7,7 +7,7 @@ use crate::logger; // 导入 logger 模块
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
 
-pub struct AppDataCleaner {
+pub struct AppDataCleaner { // 定义数据类型
     is_scanning: bool,
     current_folder: Option<String>,
     folder_data: Vec<(String, u64)>,
@@ -16,11 +16,12 @@ pub struct AppDataCleaner {
     selected_appdata_folder: String, // 新增字段
     tx: Option<Sender<(String, u64)>>,
     rx: Option<Receiver<(String, u64)>>,
-    is_logging_enabled: bool,  // 新增字段
+    is_logging_enabled: bool,  // 控制日志是否启用
     //current_folder_type: String, // 新增字段
+    previous_logging_state: bool, // 记录上一次日志启用状态
 }
 
-impl Default for AppDataCleaner {
+impl Default for AppDataCleaner { // 定义变量默认值
     fn default() -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
         Self {
@@ -33,6 +34,7 @@ impl Default for AppDataCleaner {
             tx: Some(tx),
             rx: Some(rx),
             is_logging_enabled: false,  // 默认禁用日志
+            previous_logging_state: false, // 初始时假定日志系统未启用
         }
     }
 }
@@ -65,16 +67,18 @@ impl eframe::App for AppDataCleaner {
         self.setup_custom_fonts(ctx);
 
         // 检查是否启用日志，如果状态发生变化则记录日志
-        if self.is_logging_enabled != self.previous_logging_state {
-            if self.is_logging_enabled {
-                log::info!("日志系统已启用");
-            } else {
-                log::info!("日志系统已禁用");
-            }
-
-            // 更新状态
-            self.previous_logging_state = self.is_logging_enabled;
-        }
+        //if self.is_logging_enabled != self.previous_logging_state {
+        //    if self.is_logging_enabled {
+        //        println!("日志系统已启用\n");
+        //        log::info!("日志系统已启用");
+        //    } else {
+        //        println!("日志系统已禁用\n");
+        //        log::info!("日志系统已禁用");
+        //    }
+//
+        //    // 更新状态
+        //    self.previous_logging_state = self.is_logging_enabled;
+        //}
 
         // 删除确认弹窗逻辑
         if let Some((folder_name, _)) = &self.confirm_delete {
@@ -109,20 +113,14 @@ impl eframe::App for AppDataCleaner {
             ui.menu_button("切换文件夹", |ui| {
                 if ui.button("Roaming").clicked() {
                     self.selected_appdata_folder = "Roaming".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
                     ui.close_menu();
                 }
                 if ui.button("Local").clicked() {
                     self.selected_appdata_folder = "Local".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
                     ui.close_menu();
                 }
                 if ui.button("LocalLow").clicked() {
                     self.selected_appdata_folder = "LocalLow".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
                     ui.close_menu();
                 }
             });
@@ -169,7 +167,7 @@ impl eframe::App for AppDataCleaner {
                             self.confirm_delete = Some((folder.clone(), false));
                         }
                         if ui.button("移动").clicked() {
-                            // 移动逻辑 敬请期待
+                            // 移动逻辑
                         }
                         ui.end_row();
                     }
@@ -190,4 +188,3 @@ impl eframe::App for AppDataCleaner {
         }
     }
 }
-
