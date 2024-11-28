@@ -97,14 +97,20 @@ impl eframe::App for AppDataCleaner {
             ui.menu_button("切换文件夹", |ui| {
                 if ui.button("Roaming").clicked() {
                     self.selected_appdata_folder = "Roaming".to_string();
+                    self.folder_data.clear(); // 清空扫描结果
+                    self.is_scanning = false; // 重置扫描状态
                     ui.close_menu();
                 }
                 if ui.button("Local").clicked() {
                     self.selected_appdata_folder = "Local".to_string();
+                    self.folder_data.clear(); // 清空扫描结果
+                    self.is_scanning = false; // 重置扫描状态
                     ui.close_menu();
                 }
                 if ui.button("LocalLow").clicked() {
                     self.selected_appdata_folder = "LocalLow".to_string();
+                    self.folder_data.clear(); // 清空扫描结果
+                    self.is_scanning = false; // 重置扫描状态
                     ui.close_menu();
                 }
             });
@@ -172,3 +178,4 @@ impl eframe::App for AppDataCleaner {
         }
     }
 }
+
