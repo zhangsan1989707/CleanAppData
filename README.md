@@ -1,4 +1,14 @@
-# APPDATACleaner - 适用于 Windows 系统的 appdata 文件夹清理工具
+# [AppDataCleaner - 适用于 Windows 系统的 appdata 文件夹清理工具][repo-url]
+
+ [![GitHub issues][issues-image]][issues-url]
+ [![Github Pulls][pulls-image]][pulls-url]
+ [![GitHub stars][stars-image]][stars-url]
+ [![GitHub forks][forks-image]][forks-url]
+ [![Github Downloads][download-image]][download-url]
+ [![license][license-image]][license-url]
+ ![repo-size][repo-size-image]
+ [![hits][hits-image]][hits-url]
+
 完全开源免费的清理 Appdata 的小工具！完全使用 ChatGPT 生成！
 
 <details>
@@ -86,3 +96,40 @@ cargo build --release
 - [egui](https://github.com/emilk/egui) - GUI 框架
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
+
+<!-- 链接开始 -->
+[issues-url]: https://github.com/TC999/AppDataCleaner/issues "议题"
+[issues-image]: https://custom-icon-badges.demolab.com/github/issues-raw/TC999/AppDataCleaner?logo=issue-opened&label=%E8%AE%AE%E9%A2%98
+
+[pulls-url]: https://github.com/TC999/AppDataCleaner/pulls "拉取请求"
+[pulls-image]: https://custom-icon-badges.demolab.com/github/issues-pr-raw/TC999/AppDataCleaner?style=flat&logo=git-pull-request&%3Fcolor%3Dgreen&label=%E6%8B%89%E5%8F%96%E8%AF%B7%E6%B1%82
+
+[stars-url]: https://github.com/TC999/AppDataCleaner/stargazers "星标"
+[stars-image]: https://custom-icon-badges.demolab.com/github/stars/TC999/AppDataCleaner?style=flat&logo=star&%3Fcolor%3Dblue&label=%E6%98%9F%E6%A0%87
+
+[forks-url]: https://github.com/TC999/AppDataCleaner/fork "复刻"
+[forks-image]: https://custom-icon-badges.demolab.com/github/forks/TC999/AppDataCleaner?style=flat&logo=repo-forked&%3Fcolor%3Dblue&label=%E5%A4%8D%E5%88%BB
+
+[discussions-url]: https://github.com/TC999/AppDataCleaner/discussions "讨论"
+
+[hits-url]: https://hits.dwyl.com/ "访问量"
+[hits-image]: https://custom-icon-badges.demolab.com/endpoint?url=https%3A%2F%2Fhits.dwyl.com%2FTC999%2FAppDataCleaner.json%3Fcolor%3Dgreen&label=%E8%AE%BF%E9%97%AE%E9%87%8F&logo=graph 
+
+[repo-url]: https://github.com/TC999/AppDataCleaner "仓库地址"
+
+[repo-size-image]:https://custom-icon-badges.demolab.com/github/repo-size/TC999/AppDataCleaner?style=flat&logo=file-code&label=%E4%BB%93%E5%BA%93%E5%A4%A7%E5%B0%8F&labelColor=3F
+
+[download-url]: https://github.com/TC999/AppDataCleaner/releases/latest "下载"
+[download-image]: https://custom-icon-badges.demolab.com/github/downloads/TC999/AppDataCleaner/total?style=flat&logo=download&label=%E4%B8%8B%E8%BD%BD%E6%95%B0&%3Fcolor%3Dblue "总下载数"
+
+[LemurBrowser-url]: https://lemurbrowser.com "狐猴浏览器"
+
+[license-url]: https://github.com/TC999/AppDataCleaner/blob/master/LICENSE "许可证"
+[license-image]: https://custom-icon-badges.demolab.com/github/license/TC999/AppDataCleaner?style=flat&logo=law&label=%E8%AE%B8%E5%8F%AF%E8%AF%81
+
+[Ungoogled-Chromuim-url]: https://ungoogled-software.github.io/ungoogled-chromium-binaries/ "Ungoogled-Chromuim 官网"
+
+[zhihu-enhance-url]: https://greasyfork.org/zh-CN/scripts/419081-%E7%9F%A5%E4%B9%8E%E5%A2%9E%E5%BC%BA "知乎增强"
+
+[github-doc-gpg-url]: https://docs.github.com/zh/authentication/managing-commit-signature-verification/generating-a-new-gpg-key "GPG签名"
+<!-- 链接结束 -->
