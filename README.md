@@ -7,7 +7,7 @@
  [![Github Downloads][download-image]][download-url]
  [![license][license-image]][license-url]
  ![repo-size][repo-size-image]
- [![hits][hits-image]][hits-url]
+ <!--[![hits][hits-image]][hits-url]-->
 
 完全开源免费的清理 Appdata 的小工具！完全使用 ChatGPT 生成！
 
@@ -100,16 +100,16 @@ cargo build --release
 
 <!-- 链接开始 -->
 [issues-url]: https://github.com/TC999/AppDataCleaner/issues "议题"
-[issues-image]: https://custom-icon-badges.demolab.com/github/issues-raw/TC999/AppDataCleaner?logo=issue-opened&label=%E8%AE%AE%E9%A2%98
+[issues-image]: https://img.shields.io/github/issues/TC999/AppDataCleaner?style=flat-square&logo=github&label=议题
 
 [pulls-url]: https://github.com/TC999/AppDataCleaner/pulls "拉取请求"
 [pulls-image]: https://custom-icon-badges.demolab.com/github/issues-pr-raw/TC999/AppDataCleaner?style=flat&logo=git-pull-request&%3Fcolor%3Dgreen&label=%E6%8B%89%E5%8F%96%E8%AF%B7%E6%B1%82
 
 [stars-url]: https://github.com/TC999/AppDataCleaner/stargazers "星标"
-[stars-image]: https://custom-icon-badges.demolab.com/github/stars/TC999/AppDataCleaner?style=flat&logo=star&%3Fcolor%3Dblue&label=%E6%98%9F%E6%A0%87
+[stars-image]: https://img.shields.io/github/stars/TC999/AppDataCleaner?style=flat-square&logo=github&label=星标
 
 [forks-url]: https://github.com/TC999/AppDataCleaner/fork "复刻"
-[forks-image]: https://custom-icon-badges.demolab.com/github/forks/TC999/AppDataCleaner?style=flat&logo=repo-forked&%3Fcolor%3Dblue&label=%E5%A4%8D%E5%88%BB
+[forks-image]: https://img.shields.io/github/forks/TC999/AppDataCleaner?style=flat-square&logo=github&label=复刻
 
 [discussions-url]: https://github.com/TC999/AppDataCleaner/discussions "讨论"
 
@@ -118,10 +118,11 @@ cargo build --release
 
 [repo-url]: https://github.com/TC999/AppDataCleaner "仓库地址"
 
-[repo-size-image]:https://custom-icon-badges.demolab.com/github/repo-size/TC999/AppDataCleaner?style=flat&logo=file-code&label=%E4%BB%93%E5%BA%93%E5%A4%A7%E5%B0%8F&labelColor=3F
+[repo-size-image]:https://img.shields.io/github/repo-size/TC999/AppDataCleaner?style=flat-square&label=%E4%BB%93%E5%BA%93%E5%A4%A7%E5%B0%8F
+
 
 [download-url]: https://github.com/TC999/AppDataCleaner/releases/latest "下载"
-[download-image]: https://custom-icon-badges.demolab.com/github/downloads/TC999/AppDataCleaner/total?style=flat&logo=download&label=%E4%B8%8B%E8%BD%BD%E6%95%B0&%3Fcolor%3Dblue "总下载数"
+[download-image]: https://img.shields.io/github/downloads/TC999/AppDataCleaner/total?style=flat-square&logo=github&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E6%95%B0 "总下载数"
 
 [license-url]: https://github.com/TC999/AppDataCleaner/blob/master/LICENSE "许可证"
 [license-image]: https://custom-icon-badges.demolab.com/github/license/TC999/AppDataCleaner?style=flat&logo=law&label=%E8%AE%B8%E5%8F%AF%E8%AF%81
