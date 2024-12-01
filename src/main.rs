@@ -1,10 +1,10 @@
-mod about;
-mod confirmation;
-mod delete;
-mod scanner;
-mod ui;
-mod utils;
-mod logger;  // 引入 logger 模块
+mod about;        // 关于界面
+mod confirmation; // 确认删除模块
+mod delete;  // 引入删除模块
+mod scanner; // 引入扫盘模块
+mod ui;      // 引入 ui 模块
+mod utils;   // 文件夹大小计算模块
+mod logger;  // 引入日志模块
 
 use ui::AppDataCleaner;
 
@@ -14,7 +14,7 @@ fn main() -> Result<(), eframe::Error> {
 
     let options = eframe::NativeOptions::default();
     eframe::run_native(
-        "AppData Cleaner",
+        "AppData 清理器",
         options,
         Box::new(|_| {
             logger::log_info("应用程序启动");

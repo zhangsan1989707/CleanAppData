@@ -7,7 +7,7 @@ use crate::logger; // 导入 logger 模块
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
 
-pub struct AppDataCleaner {
+pub struct AppDataCleaner { // 定义数据类型
     is_scanning: bool,
     current_folder: Option<String>,
     folder_data: Vec<(String, u64)>,
@@ -16,11 +16,12 @@ pub struct AppDataCleaner {
     selected_appdata_folder: String, // 新增字段
     tx: Option<Sender<(String, u64)>>,
     rx: Option<Receiver<(String, u64)>>,
-    is_logging_enabled: bool,  // 新增字段
+    is_logging_enabled: bool,  // 控制日志是否启用
     //current_folder_type: String, // 新增字段
+    previous_logging_state: bool, // 记录上一次日志启用状态
 }
 
-impl Default for AppDataCleaner {
+impl Default for AppDataCleaner { // 定义变量默认值
     fn default() -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
         Self {
@@ -33,6 +34,7 @@ impl Default for AppDataCleaner {
             tx: Some(tx),
             rx: Some(rx),
             is_logging_enabled: false,  // 默认禁用日志
+            previous_logging_state: false, // 初始时假定日志系统未启用
         }
     }
 }
@@ -64,9 +66,20 @@ impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
 
+        if self.is_logging_enabled != self.previous_logging_state {
+            logger::init_logger(self.is_logging_enabled); // 初始化日志系统
+            if self.is_logging_enabled {
+                logger::log_info("日志系统已启用");
+            } else {
+                logger::log_info("日志系统已禁用");
+            }
+            self.previous_logging_state = self.is_logging_enabled; // 更新状态
+        }
+
         // 删除确认弹窗逻辑
         if let Some((folder_name, _)) = &self.confirm_delete {
             let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
+            logger::log_info(&message);
             if let Some(confirm) = confirmation::show_confirmation(ctx, &message) {
                 if confirm {
                     if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
@@ -144,6 +157,7 @@ impl eframe::App for AppDataCleaner {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
                     ui.label("文件夹");
                     ui.label("大小");
+                    ui.label("父级百分比"); // 后续内容，死机暂时不处理
                     ui.label("使用软件");
                     ui.label("操作");
                     ui.end_row();
@@ -151,13 +165,14 @@ impl eframe::App for AppDataCleaner {
                     for (folder, size) in &self.folder_data {
                         ui.label(folder);
                         ui.label(utils::format_size(*size));
+                        ui.label("敬请期待"); // 百分比计算，一直死机没解决，代码在dev分支
                         ui.label("敬请期待");
 
                         if ui.button("彻底删除").clicked() {
                             self.confirm_delete = Some((folder.clone(), false));
                         }
                         if ui.button("移动").clicked() {
-                            // 移动逻辑 敬请期待
+                            // 移动逻辑
                         }
                         ui.end_row();
                     }
@@ -171,11 +186,10 @@ impl eframe::App for AppDataCleaner {
         }
 
         // 根据日志开关决定是否记录日志
-        if self.is_logging_enabled {
-            log::info!("日志系统已启用");
-        } else {
-            log::info!("日志系统已禁用");
-        }
+        //    log::info!("日志系统已启用");
+        //if self.is_logging_enabled {
+        //} else {
+        //    log::info!("日志系统已禁用");
+        //}
     }
 }
-

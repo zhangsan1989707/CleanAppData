@@ -3,7 +3,7 @@ name: 测试
 on:
   push:
     paths-ignore: |
-      - **.md
+      - *.md
       - LICENSE
       - readme/**
 
