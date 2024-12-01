@@ -157,6 +157,7 @@ impl eframe::App for AppDataCleaner {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
                     ui.label("文件夹");
                     ui.label("大小");
+                    ui.label("父级百分比"); // 后续内容，死机暂时不处理
                     ui.label("使用软件");
                     ui.label("操作");
                     ui.end_row();
@@ -164,6 +165,7 @@ impl eframe::App for AppDataCleaner {
                     for (folder, size) in &self.folder_data {
                         ui.label(folder);
                         ui.label(utils::format_size(*size));
+                        ui.label("敬请期待"); // 百分比计算，一直死机没解决，代码在dev分支
                         ui.label("敬请期待");
 
                         if ui.button("彻底删除").clicked() {
