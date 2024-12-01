@@ -66,19 +66,15 @@ impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
 
-        // 检查是否启用日志，如果状态发生变化则记录日志
-        //if self.is_logging_enabled != self.previous_logging_state {
-        //    if self.is_logging_enabled {
-        //        println!("日志系统已启用\n");
-        //        log::info!("日志系统已启用");
-        //    } else {
-        //        println!("日志系统已禁用\n");
-        //        log::info!("日志系统已禁用");
-        //    }
-
-        //    // 更新状态
-        //    self.previous_logging_state = self.is_logging_enabled;
-        //}
+        if self.is_logging_enabled != self.previous_logging_state {
+            logger::init_logger(self.is_logging_enabled); // 初始化日志系统
+            if self.is_logging_enabled {
+                logger::log_info("日志系统已启用");
+            } else {
+                logger::log_info("日志系统已禁用");
+            }
+            self.previous_logging_state = self.is_logging_enabled; // 更新状态
+        }
 
         // 删除确认弹窗逻辑
         if let Some((folder_name, _)) = &self.confirm_delete {
