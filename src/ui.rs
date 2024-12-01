@@ -83,6 +83,7 @@ impl eframe::App for AppDataCleaner {
         // 删除确认弹窗逻辑
         if let Some((folder_name, _)) = &self.confirm_delete {
             let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
+            logger::log_info(&message);
             if let Some(confirm) = confirmation::show_confirmation(ctx, &message) {
                 if confirm {
                     if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
@@ -187,10 +188,10 @@ impl eframe::App for AppDataCleaner {
         }
 
         // 根据日志开关决定是否记录日志
-        if self.is_logging_enabled {
-            log::info!("日志系统已启用");
-        } else {
-            log::info!("日志系统已禁用");
-        }
+        //    log::info!("日志系统已启用");
+        //if self.is_logging_enabled {
+        //} else {
+        //    log::info!("日志系统已禁用");
+        //}
     }
 }
