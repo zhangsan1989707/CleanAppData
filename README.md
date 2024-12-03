@@ -84,6 +84,8 @@ cargo build --release
 - [ ] 添加软件图标
 - [ ] 项目网站(使用 github pages 实现)
 - [ ] 其他……
+
+或者前往[这个讨论](https://github.com/TC999/AppDataCleaner/discussions/7)查看更多待办事项。
 ## ✨ 贡献
 1. 复刻本仓库
 2. 创建一个分支并以你修改的功能命名，注意每个功能单独一个代码文件（作为模块导入）
