@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use egui::Context;
 use crate::utils;
 use crate::logger;
+use eframe::egui;
 
 pub fn show_move_dialog(
     ctx: &Context,
@@ -44,6 +45,7 @@ pub fn move_folder(
     target: &Path,
     on_progress: &dyn Fn(f64), // 使用引用的动态函数类型
 ) -> io::Result<()> {
+    println!("Starting folder move from {:?} to {:?}", source, target);
     let entries: Vec<_> = fs::read_dir(source)?.collect::<Result<_, _>>()?;
     let total_files = entries.len();
     let mut copied_files = 0;
@@ -55,6 +57,7 @@ pub fn move_folder(
         let file_type = entry.file_type()?;
         let source_path = entry.path();
         let target_path = target.join(entry.file_name());
+        println!("Processing entry: {:?}", entry.path());
 
         if file_type.is_dir() {
             move_folder(&source_path, &target_path, on_progress)?; // 递归移动子目录
