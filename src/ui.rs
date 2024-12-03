@@ -198,14 +198,6 @@ impl eframe::App for AppDataCleaner {
                                 response1 | response2 | response3 // 返回合并的 Response
                             });
                         }
-                        
-                        //if ui.button("忽略").clicked() {
-                        //    self.ignored_folders.insert(folder.clone());
-                        //    ignore::save_ignored_folders(&self.ignored_folders);
-                        //    println!("文件夹 '{}' 已被忽略", folder);
-                        //    log::info!("文件夹 '{}' 已被忽略", folder);
-                        //}
-
                         ui.end_row();
                     }
                 });

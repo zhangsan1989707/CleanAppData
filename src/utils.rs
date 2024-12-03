@@ -23,3 +23,25 @@ pub fn get_appdata_dir(folder_type: &str) -> Option<PathBuf> {
     }
 }
 
+use std::fs;
+use std::path::Path;
+use sha2::{Digest, Sha256};
+
+pub fn hash_file(path: &Path) -> Result<String, std::io::Error> {
+    let mut file = fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut file, &mut hasher)?;
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+pub fn compare_dirs_hash(source: &Path, target: &Path) -> Result<bool, std::io::Error> {
+    let source_hashes: Vec<_> = fs::read_dir(source)?
+        .map(|entry| hash_file(&entry?.path()))
+        .collect::<Result<_, _>>()?;
+    let target_hashes: Vec<_> = fs::read_dir(target)?
+        .map(|entry| hash_file(&entry?.path()))
+        .collect::<Result<_, _>>()?;
+
+    Ok(source_hashes == target_hashes)
+}
+
