@@ -183,11 +183,13 @@ impl eframe::App for AppDataCleaner {
                                 self.confirm_delete = Some((folder.clone(), false));
                             }
                             if ui.button("移动").clicked() {
+                                println!("show_move_dialog is called");
                                 let folder_path = utils::get_appdata_dir(&self.selected_appdata_folder)
                                     .unwrap_or_default()
                                     .join(folder);
                             
                                 move_module::show_move_dialog(ctx, folder, &folder_path, |target_path| {
+                                    println!("Confirmed move to {:?}", target_path);
                                     let progress = |p: f64| {
                                         ctx.request_repaint();
                                         println!("移动进度: {:.2}%", p * 100.0);

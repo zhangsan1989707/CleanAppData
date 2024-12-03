@@ -15,10 +15,13 @@ pub fn show_move_dialog(
     let mut selected_path = None;
 
     egui::Window::new("选择目标文件夹").show(ctx, |ui| {
+        println!("Window rendered");  // 确保窗口被渲染
         if ui.button("选择目标文件夹").clicked() {
+            println!("选择目标文件夹按钮被点击");  // 确保按钮点击事件被捕捉
             if let Some(path) = rfd::FileDialog::new().pick_folder() {
                 println!("Selected path: {:?}", path);
                 logger::log_info(&format!("Selected path: {:?}", path));
+                println!("选择的目标路径: {:?}", path);
                 selected_path = Some(path);
             }
         }
@@ -30,11 +33,13 @@ pub fn show_move_dialog(
                 target_path.display()
             );
             if ui.button("确认").clicked() {
+                println!("确认按钮被点击");  // 确保确认按钮点击事件
                 on_confirm(target_path.clone());
                 ui.close_menu();
                 println!("Move confirmed to {:?}", target_path); // 确认动作
             }
             if ui.button("取消").clicked() {
+                println!("取消按钮被点击");  // 确保取消按钮点击事件
                 ui.close_menu();
             }
             ui.label(&message);
@@ -53,7 +58,7 @@ pub fn move_folder(
     let total_files = entries.len();
     let mut copied_files = 0;
 
-    fs::create_dir_all(target)?;
+    fs::create_dir_all(target).expect("Failed to create target directory");
 
     for entry in fs::read_dir(source)? {
         let entry = entry?;
