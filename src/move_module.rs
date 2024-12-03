@@ -17,6 +17,8 @@ pub fn show_move_dialog(
     egui::Window::new("选择目标文件夹").show(ctx, |ui| {
         if ui.button("选择目标文件夹").clicked() {
             if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                println!("Selected path: {:?}", path);
+                logger::log_info(&format!("Selected path: {:?}", path));
                 selected_path = Some(path);
             }
         }
@@ -30,7 +32,7 @@ pub fn show_move_dialog(
             if ui.button("确认").clicked() {
                 on_confirm(target_path.clone());
                 ui.close_menu();
-
+                println!("Move confirmed to {:?}", target_path); // 确认动作
             }
             if ui.button("取消").clicked() {
                 ui.close_menu();
@@ -46,6 +48,7 @@ pub fn move_folder(
     on_progress: &dyn Fn(f64), // 使用引用的动态函数类型
 ) -> io::Result<()> {
     println!("Starting folder move from {:?} to {:?}", source, target);
+    logger::log_info(&format!("Starting folder move from {:?} to {:?}", source, target));
     let entries: Vec<_> = fs::read_dir(source)?.collect::<Result<_, _>>()?;
     let total_files = entries.len();
     let mut copied_files = 0;
