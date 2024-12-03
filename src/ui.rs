@@ -184,20 +184,27 @@ impl eframe::App for AppDataCleaner {
                             if ui.button("移动").clicked() {
                                 // 移动逻辑
                             }
+                            if ui.button("忽略").clicked() {
+                                self.ignored_folders.insert(folder.clone());
+                                ignore::save_ignored_folders(&self.ignored_folders);
+                                println!("文件夹 '{}' 已被忽略", folder);
+                                log::info!("文件夹 '{}' 已被忽略", folder);
+                            }
                         } else {
                             ui.add_enabled(false, |ui: &mut egui::Ui| {
                                 let response1 = ui.button("彻底删除");
                                 let response2 = ui.button("移动");
-                                response1 | response2 // 返回合并的 Response
+                                let response3 = ui.button("忽略");
+                                response1 | response2 | response3 // 返回合并的 Response
                             });
                         }
                         
-                        if ui.button("忽略").clicked() {
-                            self.ignored_folders.insert(folder.clone());
-                            ignore::save_ignored_folders(&self.ignored_folders);
-                            println!("文件夹 '{}' 已被忽略", folder);
-                            log::info!("文件夹 '{}' 已被忽略", folder);
-                        }
+                        //if ui.button("忽略").clicked() {
+                        //    self.ignored_folders.insert(folder.clone());
+                        //    ignore::save_ignored_folders(&self.ignored_folders);
+                        //    println!("文件夹 '{}' 已被忽略", folder);
+                        //    log::info!("文件夹 '{}' 已被忽略", folder);
+                        //}
 
                         ui.end_row();
                     }
