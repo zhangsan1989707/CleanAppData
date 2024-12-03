@@ -5,6 +5,7 @@ mod scanner; // 引入扫盘模块
 mod ui;      // 引入 ui 模块
 mod utils;   // 文件夹大小计算模块
 mod logger;  // 引入日志模块
+mod ignore; // 引入忽略模块
 
 use ui::AppDataCleaner;
 

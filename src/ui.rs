@@ -4,8 +4,10 @@ use crate::delete;
 use crate::scanner;
 use crate::utils;
 use crate::logger; // 导入 logger 模块
+use crate::ignore;
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
+use std::collections::HashSet;
 
 pub struct AppDataCleaner { // 定义数据类型
     is_scanning: bool,
@@ -19,6 +21,7 @@ pub struct AppDataCleaner { // 定义数据类型
     is_logging_enabled: bool,  // 控制日志是否启用
     //current_folder_type: String, // 新增字段
     previous_logging_state: bool, // 记录上一次日志启用状态
+    ignored_folders: HashSet<String>,  // 忽略文件夹集合
 }
 
 impl Default for AppDataCleaner { // 定义变量默认值
@@ -35,6 +38,7 @@ impl Default for AppDataCleaner { // 定义变量默认值
             rx: Some(rx),
             is_logging_enabled: false,  // 默认禁用日志
             previous_logging_state: false, // 初始时假定日志系统未启用
+            ignored_folders: ignore::load_ignored_folders(),
         }
     }
 }
@@ -163,7 +167,12 @@ impl eframe::App for AppDataCleaner {
                     ui.end_row();
 
                     for (folder, size) in &self.folder_data {
-                        ui.label(folder);
+                        let is_ignored = self.ignored_folders.contains(folder);
+                        if is_ignored {
+                            ui.add_enabled(false, egui::Label::new(egui::RichText::new(folder).color(egui::Color32::GRAY)));
+                        } else {
+                            ui.label(folder);
+                        }
                         ui.label(utils::format_size(*size));
                         ui.label("敬请期待"); // 百分比计算，一直死机没解决，代码在dev分支
                         ui.label("敬请期待");
@@ -173,6 +182,10 @@ impl eframe::App for AppDataCleaner {
                         }
                         if ui.button("移动").clicked() {
                             // 移动逻辑
+                        }
+                        if ui.button("忽略").clicked() {
+                            self.ignored_folders.insert(folder.clone());
+                            ignore::save_ignored_folders(&self.ignored_folders);
                         }
                         ui.end_row();
                     }
