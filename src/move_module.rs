@@ -28,10 +28,11 @@ pub fn show_move_dialog(
             );
             if ui.button("确认").clicked() {
                 on_confirm(target_path.clone());
-                ui.close();
+                ui.close_menu();
+
             }
             if ui.button("取消").clicked() {
-                ui.close();
+                ui.close_menu();
             }
             ui.label(&message);
         }
@@ -49,7 +50,7 @@ pub fn move_folder(
 
     fs::create_dir_all(target)?;
 
-    for entry in entries {
+    for entry in std::fs::read_dir(some_path)? {
         let entry = entry?;
         let file_type = entry.file_type()?;
         let source_path = entry.path();

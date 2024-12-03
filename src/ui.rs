@@ -5,6 +5,7 @@ use crate::scanner;
 use crate::utils;
 use crate::logger; // 导入 logger 模块
 use crate::ignore;
+use crate::move_module;
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
 use std::collections::HashSet;
@@ -182,7 +183,30 @@ impl eframe::App for AppDataCleaner {
                                 self.confirm_delete = Some((folder.clone(), false));
                             }
                             if ui.button("移动").clicked() {
-                                // 移动逻辑
+                                let folder_path = utils::get_appdata_dir(&self.selected_appdata_folder)
+                                    .unwrap_or_default()
+                                    .join(folder);
+                            
+                                move_module::show_move_dialog(ctx, folder, &folder_path, |target_path| {
+                                    let progress = |p: f64| {
+                                        ctx.request_repaint();
+                                        println!("移动进度: {:.2}%", p * 100.0);
+                                    };
+                            
+                                    if let Err(err) = move_module::move_folder(&folder_path, &target_path, progress) {
+                                        eprintln!("移动文件夹失败: {}", err);
+                                        logger::log_error(&format!("移动文件夹失败: {}", err));
+                                        return;
+                                    }
+                            
+                                    if let Err(err) = move_module::verify_and_create_symlink(&folder_path, &target_path) {
+                                        eprintln!("符号链接创建失败: {}", err);
+                                        logger::log_error(&format!("符号链接创建失败: {}", err));
+                                        return;
+                                    }
+                            
+                                    logger::log_info(&format!("文件夹 {} 成功移动至 {}", folder, target_path.display()));
+                                });
                             }
                             if ui.button("忽略").clicked() {
                                 self.ignored_folders.insert(folder.clone());
