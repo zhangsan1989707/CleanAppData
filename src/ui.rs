@@ -177,16 +177,28 @@ impl eframe::App for AppDataCleaner {
                         ui.label("敬请期待"); // 百分比计算，一直死机没解决，代码在dev分支
                         ui.label("敬请期待");
 
-                        if ui.button("彻底删除").clicked() {
-                            self.confirm_delete = Some((folder.clone(), false));
+                        if !self.ignored_folders.contains(folder) {
+                            if ui.button("彻底删除").clicked() {
+                                self.confirm_delete = Some((folder.clone(), false));
+                            }
+                            if ui.button("移动").clicked() {
+                                // 移动逻辑
+                            }
+                        } else {
+                            ui.add_enabled(false, |ui: &mut egui::Ui| {
+                                let response1 = ui.button("彻底删除");
+                                let response2 = ui.button("移动");
+                                response1 | response2 // 返回合并的 Response
+                            });
                         }
-                        if ui.button("移动").clicked() {
-                            // 移动逻辑
-                        }
+                        
                         if ui.button("忽略").clicked() {
                             self.ignored_folders.insert(folder.clone());
                             ignore::save_ignored_folders(&self.ignored_folders);
+                            println!("文件夹 '{}' 已被忽略", folder);
+                            log::info!("文件夹 '{}' 已被忽略", folder);
                         }
+
                         ui.end_row();
                     }
                 });
