@@ -42,7 +42,7 @@ pub fn show_move_dialog(
 pub fn move_folder(
     source: &Path,
     target: &Path,
-    on_progress: impl Fn(f64), // 传递复制进度
+    on_progress: &dyn Fn(f64), // 使用引用的动态函数类型
 ) -> io::Result<()> {
     let entries: Vec<_> = fs::read_dir(source)?.collect::<Result<_, _>>()?;
     let total_files = entries.len();
@@ -50,16 +50,16 @@ pub fn move_folder(
 
     fs::create_dir_all(target)?;
 
-    for entry in std::fs::read_dir(some_path)? {
+    for entry in fs::read_dir(source)? {
         let entry = entry?;
         let file_type = entry.file_type()?;
         let source_path = entry.path();
         let target_path = target.join(entry.file_name());
 
         if file_type.is_dir() {
-            move_folder(&source_path, &target_path, &on_progress)?;
+            move_folder(&source_path, &target_path, on_progress)?; // 递归移动子目录
         } else {
-            fs::copy(&source_path, &target_path)?;
+            fs::copy(&source_path, &target_path)?; // 复制文件
         }
 
         copied_files += 1;

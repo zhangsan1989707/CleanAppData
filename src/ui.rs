@@ -193,7 +193,7 @@ impl eframe::App for AppDataCleaner {
                                         println!("移动进度: {:.2}%", p * 100.0);
                                     };
                             
-                                    if let Err(err) = move_module::move_folder(&folder_path, &target_path, progress) {
+                                    if let Err(err) = move_module::move_folder(&folder_path, &target_path, &progress) {
                                         eprintln!("移动文件夹失败: {}", err);
                                         logger::log_error(&format!("移动文件夹失败: {}", err));
                                         return;
