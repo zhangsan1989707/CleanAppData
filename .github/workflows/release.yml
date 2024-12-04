@@ -44,8 +44,8 @@ jobs:
     - name: 自动发布发行版
       uses: softprops/action-gh-release@v2
       with:
-        name: ${{ env.CURRENT_DATE }}
-        tag_name: ${{ env.CURRENT_DATE }}
+        name: ${{ input.rname }}
+        tag_name: ${{ input.tag_name }}
         draft: false
         make_latest: true
         files: |
