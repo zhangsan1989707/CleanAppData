@@ -5,6 +5,8 @@ use crate::scanner;
 use crate::utils;
 use crate::logger; // 导入 logger 模块
 use crate::ignore;
+use crate::move_module;
+use crate::open;
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
 use std::collections::HashSet;
@@ -182,7 +184,32 @@ impl eframe::App for AppDataCleaner {
                                 self.confirm_delete = Some((folder.clone(), false));
                             }
                             if ui.button("移动").clicked() {
-                                // 移动逻辑
+                                println!("show_move_dialog is called");
+                                let folder_path = utils::get_appdata_dir(&self.selected_appdata_folder)
+                                    .unwrap_or_default()
+                                    .join(folder);
+                            
+                                move_module::show_move_dialog(ctx, folder, &folder_path, |target_path| {
+                                    println!("Confirmed move to {:?}", target_path);
+                                    let progress = |p: f64| {
+                                        ctx.request_repaint();
+                                        println!("移动进度: {:.2}%", p * 100.0);
+                                    };
+                            
+                                    if let Err(err) = move_module::move_folder(&folder_path, &target_path, &progress) {
+                                        eprintln!("移动文件夹失败: {}", err);
+                                        logger::log_error(&format!("移动文件夹失败: {}", err));
+                                        return;
+                                    }
+                            
+                                    if let Err(err) = move_module::verify_and_create_symlink(&folder_path, &target_path) {
+                                        eprintln!("符号链接创建失败: {}", err);
+                                        logger::log_error(&format!("符号链接创建失败: {}", err));
+                                        return;
+                                    }
+                            
+                                    logger::log_info(&format!("文件夹 {} 成功移动至 {}", folder, target_path.display()));
+                                });
                             }
                             if ui.button("忽略").clicked() {
                                 self.ignored_folders.insert(folder.clone());
@@ -198,14 +225,25 @@ impl eframe::App for AppDataCleaner {
                                 response1 | response2 | response3 // 返回合并的 Response
                             });
                         }
-                        
-                        //if ui.button("忽略").clicked() {
-                        //    self.ignored_folders.insert(folder.clone());
-                        //    ignore::save_ignored_folders(&self.ignored_folders);
-                        //    println!("文件夹 '{}' 已被忽略", folder);
-                        //    log::info!("文件夹 '{}' 已被忽略", folder);
-                        //}
-
+                        // 操作区内逻辑，新增 "打开" 按钮
+                        if ui.button("打开").clicked() {
+                            if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
+                                let full_path = base_path.join(folder);
+                                match open::open_folder(&full_path) {
+                                    Ok(_) => {
+                                        println!("成功打开文件夹: {}", full_path.display());
+                                        logger::log_info(&format!("成功打开文件夹: {}", full_path.display()));
+                                    }
+                                    Err(err) => {
+                                        eprintln!("无法打开文件夹: {}", err);
+                                        logger::log_error(&format!("无法打开文件夹: {}", err));
+                                    }
+                                }
+                            } else {
+                                eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
+                                logger::log_error(&format!("无法获取 {} 文件夹路径", self.selected_appdata_folder));
+                            }
+                        }
                         ui.end_row();
                     }
                 });
