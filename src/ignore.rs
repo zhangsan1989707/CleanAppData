@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fs::{self, OpenOptions};
 use std::io::{self, BufRead, Write};
-use std::path::Path;
+//use std::path::Path;
 
 const IGNORE_FILE: &str = "adcignore.txt";
 

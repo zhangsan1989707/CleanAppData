@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::process::Command;
+//use crate::logger;
 
 pub fn open_folder(folder_path: &Path) -> Result<(), String> {
     if !folder_path.exists() {
