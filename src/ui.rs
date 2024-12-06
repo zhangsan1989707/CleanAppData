@@ -6,6 +6,7 @@ use crate::utils;
 use crate::logger; // 导入 logger 模块
 use crate::ignore;
 use crate::move_module;
+use crate::open;
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
 use std::collections::HashSet;
@@ -223,6 +224,25 @@ impl eframe::App for AppDataCleaner {
                                 let response3 = ui.button("忽略");
                                 response1 | response2 | response3 // 返回合并的 Response
                             });
+                        }
+                        // 操作区内逻辑，新增 "打开" 按钮
+                        if ui.button("打开").clicked() {
+                            if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
+                                let full_path = base_path.join(folder);
+                                match open::open_folder(&full_path) {
+                                    Ok(_) => {
+                                        println!("成功打开文件夹: {}", full_path.display());
+                                        logger::log_info(&format!("成功打开文件夹: {}", full_path.display()));
+                                    }
+                                    Err(err) => {
+                                        eprintln!("无法打开文件夹: {}", err);
+                                        logger::log_error(&format!("无法打开文件夹: {}", err));
+                                    }
+                                }
+                            } else {
+                                eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
+                                logger::log_error(&format!("无法获取 {} 文件夹路径", self.selected_appdata_folder));
+                            }
                         }
                         ui.end_row();
                     }

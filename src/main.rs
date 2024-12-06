@@ -7,6 +7,7 @@ mod utils;   // 文件夹大小计算模块
 mod logger;  // 引入日志模块
 mod ignore; // 引入忽略模块
 mod move_module;
+mod open;
 
 use ui::AppDataCleaner;
 
