@@ -17,8 +17,16 @@ pub fn open_folder(folder_path: &Path) -> Result<(), String> {
     };
 
     match status {
-        Ok(s) if s.success() => Ok(()),
-        Ok(s) => Err(format!("打开文件夹失败，状态码: {}", s)),
+        Ok(s) => {
+            if cfg!(target_os = "windows") {
+                // Windows 平台，忽略非零退出码
+                Ok(())
+            } else if s.success() {
+                Ok(())
+            } else {
+                Err(format!("打开文件夹失败，状态码: {}", s))
+            }
+        }
         Err(e) => Err(format!("执行打开命令失败: {}", e)),
     }
 }
