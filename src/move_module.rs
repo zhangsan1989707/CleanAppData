@@ -73,6 +73,7 @@ impl MoveModule {
         let source_path = PathBuf::from(&self.folder_name);
         if !source_path.exists() {
             self.status_message = Some(format!("源文件夹 {} 不存在", self.folder_name));
+            println!("源文件夹 {} 不存在", self.folder_name);
             return;
         }
 
