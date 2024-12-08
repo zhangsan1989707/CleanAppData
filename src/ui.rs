@@ -66,6 +66,28 @@ impl AppDataCleaner {
 
         ctx.set_fonts(fonts);
     }
+    fn move_folder(&mut self, ctx: &egui::Context, folder: &str) {
+        if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
+            let full_path = base_path.join(folder);
+            // 创建移动操作实例
+            let mut move_op = move_module::MoveOperation::new(full_path.to_str().unwrap().to_string());
+
+            // 弹出选择目标文件夹的窗口
+            move_op.choose_target_folder(ctx);
+
+            // 确认并执行移动操作
+            if move_op.confirm_and_move(ctx) {
+                match move_op.perform_move() {
+                    Ok(_) => {
+                        logger::log_info(&format!("成功移动文件夹 '{}' 到 '{}'", folder, move_op.target_folder));
+                    }
+                    Err(err) => {
+                        logger::log_error(&err);
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl eframe::App for AppDataCleaner {
@@ -184,32 +206,7 @@ impl eframe::App for AppDataCleaner {
                                 self.confirm_delete = Some((folder.clone(), false));
                             }
                             if ui.button("移动").clicked() {
-                                println!("show_move_dialog is called");
-                                let folder_path = utils::get_appdata_dir(&self.selected_appdata_folder)
-                                    .unwrap_or_default()
-                                    .join(folder);
-                            
-                                move_module::show_move_dialog(ctx, folder, &folder_path, |target_path| {
-                                    println!("Confirmed move to {:?}", target_path);
-                                    let progress = |p: f64| {
-                                        ctx.request_repaint();
-                                        println!("移动进度: {:.2}%", p * 100.0);
-                                    };
-                            
-                                    if let Err(err) = move_module::move_folder(&folder_path, &target_path, &progress) {
-                                        eprintln!("移动文件夹失败: {}", err);
-                                        logger::log_error(&format!("移动文件夹失败: {}", err));
-                                        return;
-                                    }
-                            
-                                    if let Err(err) = move_module::verify_and_create_symlink(&folder_path, &target_path) {
-                                        eprintln!("符号链接创建失败: {}", err);
-                                        logger::log_error(&format!("符号链接创建失败: {}", err));
-                                        return;
-                                    }
-                            
-                                    logger::log_info(&format!("文件夹 {} 成功移动至 {}", folder, target_path.display()));
-                                });
+                                
                             }
                             if ui.button("忽略").clicked() {
                                 self.ignored_folders.insert(folder.clone());
