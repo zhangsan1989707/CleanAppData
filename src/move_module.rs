@@ -49,7 +49,7 @@ impl MoveOperation {
                 if ui.button("确定").clicked() {
                     ui.close_modal(true);
                 }
-                ui.button("取消").on_hover_cursor(egui::CursorIcon::Cancel);
+                ui.button("取消");
             })
     }
 
@@ -61,7 +61,7 @@ impl MoveOperation {
             return Err("哈希校验失败".to_string());
         }
         // 删除原文件夹
-        fs::remove_dir_all(&self.source_folder)?;
+        self.remove_dir_all(&self.source_folder)?;
         // 创建符号链接
         self.create_symbolic_link(&self.source_folder, &self.target_folder)?;
         Ok(())
@@ -86,6 +86,10 @@ impl MoveOperation {
     fn check_hash(&self, source: &Path, target: &Path) -> bool {
         // 这里需要实现哈希校验逻辑，为了简化，我们假设总是返回true
         true
+    }
+
+    fn remove_dir_all(&self, path: &Path) -> Result<(), String> {
+        fs::remove_dir_all(path).map_err(|e| e.to_string())
     }
 
     fn create_symbolic_link(&self, source: &Path, target: &Path) -> Result<(), String> {
