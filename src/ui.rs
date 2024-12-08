@@ -118,23 +118,13 @@ impl eframe::App for AppDataCleaner {
             ui.checkbox(&mut self.is_logging_enabled, "启用日志");
 
             ui.menu_button("切换文件夹", |ui| {
-                if ui.button("Roaming").clicked() {
-                    self.selected_appdata_folder = "Roaming".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
-                    ui.close_menu();
-                }
-                if ui.button("Local").clicked() {
-                    self.selected_appdata_folder = "Local".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
-                    ui.close_menu();
-                }
-                if ui.button("LocalLow").clicked() {
-                    self.selected_appdata_folder = "LocalLow".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
-                    ui.close_menu();
+                for folder in ["Roaming", "Local", "LocalLow"] {
+                    if ui.button(folder).clicked() {
+                        self.selected_appdata_folder = folder.to_string();
+                        self.folder_data.clear();
+                        self.is_scanning = false;
+                        ui.close_menu();
+                    }
                 }
             });
             ui.label(format!("当前目标: {}", self.selected_appdata_folder));
