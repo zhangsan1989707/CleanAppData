@@ -3,12 +3,12 @@ use native_dialog::FileDialog;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::thread; // 添加路径选择器依赖
+use std::thread;
 
 pub struct MoveModule {
     pub show_window: bool,
-    pub folder_name: String, // 完整路径
-    pub selected_path: Option<PathBuf>,
+    pub folder_name: String,            // 源文件夹路径
+    pub selected_path: Option<PathBuf>, // 目标路径
     pub progress: f32,                  // 复制进度
     pub status_message: Option<String>, // 操作状态
 }
@@ -41,11 +41,11 @@ impl MoveModule {
                             ui.label(path.display().to_string());
                         }
                         if ui.button("选择目标路径").clicked() {
-                            // 弹出系统文件选择器
+                            // 使用文件对话框选择目标路径
                             if let Ok(Some(path)) = FileDialog::new().show_open_single_dir() {
                                 self.selected_path = Some(path);
                                 println!(
-                                    "选定目标路径: {}",
+                                    "目标路径选择: {}",
                                     self.selected_path.as_ref().unwrap().display()
                                 );
                             }
@@ -77,6 +77,7 @@ impl MoveModule {
     }
 
     fn start_move_folder(&mut self, target_path: PathBuf) {
+        // 确保源文件夹路径是完整路径
         let source_path = PathBuf::from(&self.folder_name);
 
         if !source_path.exists() {
