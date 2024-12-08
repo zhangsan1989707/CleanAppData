@@ -1,12 +1,13 @@
 use eframe::egui;
+use native_dialog::FileDialog;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::thread;
+use std::thread; // 添加路径选择器依赖
 
 pub struct MoveModule {
     pub show_window: bool,
-    pub folder_name: String,
+    pub folder_name: String, // 完整路径
     pub selected_path: Option<PathBuf>,
     pub progress: f32,                  // 复制进度
     pub status_message: Option<String>, // 操作状态
@@ -40,8 +41,14 @@ impl MoveModule {
                             ui.label(path.display().to_string());
                         }
                         if ui.button("选择目标路径").clicked() {
-                            // 模拟路径选择逻辑
-                            self.selected_path = Some(PathBuf::from("C:/YourSelectedPath"));
+                            // 弹出系统文件选择器
+                            if let Ok(Some(path)) = FileDialog::new().show_open_single_dir() {
+                                self.selected_path = Some(path);
+                                println!(
+                                    "选定目标路径: {}",
+                                    self.selected_path.as_ref().unwrap().display()
+                                );
+                            }
                         }
                     });
 
@@ -71,9 +78,10 @@ impl MoveModule {
 
     fn start_move_folder(&mut self, target_path: PathBuf) {
         let source_path = PathBuf::from(&self.folder_name);
+
         if !source_path.exists() {
-            self.status_message = Some(format!("源文件夹 {} 不存在", self.folder_name));
-            println!("源文件夹 {} 不存在", self.folder_name);
+            self.status_message = Some(format!("源文件夹不存在: {}", source_path.display()));
+            println!("源文件夹不存在: {}", source_path.display());
             return;
         }
 
@@ -86,6 +94,12 @@ impl MoveModule {
 
         // 启动后台线程执行移动逻辑
         thread::spawn(move || {
+            println!(
+                "开始复制: 从 {} 到 {}",
+                source_path.display(),
+                target_path.display()
+            );
+
             if let Err(err) = fs::create_dir_all(&target_path) {
                 let _ = tx.send(Err(format!("无法创建目标目录: {}", err)));
                 return;
@@ -171,6 +185,12 @@ fn copy_dir_with_progress(
 
         let src_path = entry.path();
         let dest_path = target.join(entry.file_name());
+
+        println!(
+            "复制文件: 从 {} 到 {}",
+            src_path.display(),
+            dest_path.display()
+        );
 
         if file_type.is_dir() {
             fs::create_dir_all(&dest_path).map_err(|err| format!("无法创建目录: {}", err))?;
