@@ -24,7 +24,7 @@ pub struct AppDataCleaner { // 定义数据类型
     //current_folder_type: String, // 新增字段
     previous_logging_state: bool, // 记录上一次日志启用状态
     ignored_folders: HashSet<String>,  // 忽略文件夹集合
-    move_module: Option<MoveModule>,
+    move_module: Option<move_module>,
 }
 
 impl Default for AppDataCleaner { // 定义变量默认值
