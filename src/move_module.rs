@@ -1,15 +1,14 @@
 use eframe::egui;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
-use std::sync::mpsc;
 
 pub struct MoveModule {
     pub show_window: bool,
     pub folder_name: String,
     pub selected_path: Option<PathBuf>,
-    pub progress: f32, // 复制进度
+    pub progress: f32,                  // 复制进度
     pub status_message: Option<String>, // 操作状态
 }
 
@@ -33,31 +32,36 @@ impl MoveModule {
                 .collapsible(false)
                 .show(ctx, |ui| {
                     ui.label(format!("需要移动的文件夹: {}", self.folder_name));
-                    
-                    if let Some(path) = &self.selected_path {
-                        ui.horizontal(|ui| {
-                            ui.label("目标路径:");
-                            ui.text_edit_singleline(&mut path.display().to_string());
-                        });
-                    } else {
+
+                    // 显示目标路径选择
+                    ui.horizontal(|ui| {
+                        ui.label("目标路径:");
+                        if let Some(path) = &self.selected_path {
+                            ui.label(path.display().to_string());
+                        }
                         if ui.button("选择目标路径").clicked() {
-                            // TODO: 调用路径选择对话框，获取用户选择的目标路径
+                            // 模拟路径选择逻辑
                             self.selected_path = Some(PathBuf::from("C:/YourSelectedPath"));
                         }
-                    }
+                    });
 
+                    // 显示状态信息
                     if let Some(message) = &self.status_message {
                         ui.label(message);
                     }
 
+                    // 显示进度条
+                    ui.add(egui::ProgressBar::new(self.progress).show_percentage());
+
+                    // 操作按钮
                     if ui.button("确定").clicked() {
                         if let Some(target_path) = &self.selected_path {
-                            if let Err(err) = self.move_folder_with_progress(&self.folder_name, target_path) {
-                                self.status_message = Some(format!("错误: {}", err));
-                            }
+                            self.start_move_folder(target_path.clone());
+                        } else {
+                            self.status_message = Some("请选择目标路径".to_string());
                         }
                     }
-                    
+
                     if ui.button("取消").clicked() {
                         self.show_window = false;
                     }
@@ -65,70 +69,76 @@ impl MoveModule {
         }
     }
 
-    fn move_folder_with_progress(&mut self, source: &str, target: &Path) -> Result<(), String> {
-        let source_path = Path::new(source);
+    fn start_move_folder(&mut self, target_path: PathBuf) {
+        let source_path = PathBuf::from(&self.folder_name);
         if !source_path.exists() {
-            return Err(format!("源文件夹 {} 不存在", source));
+            self.status_message = Some(format!("源文件夹 {} 不存在", self.folder_name));
+            return;
         }
 
-        let (tx, rx) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<String, String>>,
+            Receiver<Result<String, String>>,
+        ) = mpsc::channel();
+        self.progress = 0.0;
         self.status_message = Some("正在移动文件夹...".to_string());
 
-        let target_path = target.to_path_buf();
-        let source_path = source_path.to_path_buf();
-
+        // 启动后台线程执行移动逻辑
         thread::spawn(move || {
             if let Err(err) = fs::create_dir_all(&target_path) {
-                tx.send(Err(format!("无法创建目标目录: {}", err))).unwrap();
+                let _ = tx.send(Err(format!("无法创建目标目录: {}", err)));
                 return;
             }
 
             if let Err(err) = copy_dir_with_progress(&source_path, &target_path, &tx) {
-                tx.send(Err(format!("复制失败: {}", err))).unwrap();
+                let _ = tx.send(Err(format!("复制失败: {}", err)));
                 return;
             }
 
-            // 校验哈希值
-            // TODO: 哈希校验逻辑
-
             // 删除原文件夹
             if let Err(err) = fs::remove_dir_all(&source_path) {
-                tx.send(Err(format!("删除源目录失败: {}", err))).unwrap();
+                let _ = tx.send(Err(format!("删除源目录失败: {}", err)));
                 return;
             }
 
             // 创建符号链接
             let output = std::process::Command::new("cmd")
-                .args(["/C", "mklink", "/D", source_path.to_str().unwrap(), target_path.to_str().unwrap()])
+                .args([
+                    "/C",
+                    "mklink",
+                    "/D",
+                    source_path.to_str().unwrap(),
+                    target_path.to_str().unwrap(),
+                ])
                 .output();
 
             match output {
                 Ok(output) if output.status.success() => {
-                    tx.send(Ok(format!(
-                        "为 {} <<===>> {} 创建的符号链接",
+                    let _ = tx.send(Ok(format!(
+                        "创建符号链接成功: {} -> {}",
                         source_path.display(),
                         target_path.display()
-                    )))
-                    .unwrap();
+                    )));
                 }
                 Ok(output) => {
-                    tx.send(Err(format!(
+                    let _ = tx.send(Err(format!(
                         "创建符号链接失败: {}",
                         String::from_utf8_lossy(&output.stderr)
-                    )))
-                    .unwrap();
+                    )));
                 }
                 Err(err) => {
-                    tx.send(Err(format!("符号链接命令执行失败: {}", err))).unwrap();
+                    let _ = tx.send(Err(format!("符号链接命令执行失败: {}", err)));
                 }
             }
         });
 
+        // 主线程接收消息并更新状态
         for msg in rx {
             match msg {
                 Ok(status) => {
                     self.status_message = Some(status);
-                    self.progress = 1.0; // 完成
+                    self.progress = 1.0;
+                    break;
                 }
                 Err(err) => {
                     self.status_message = Some(err);
@@ -136,23 +146,27 @@ impl MoveModule {
                 }
             }
         }
-
-        Ok(())
     }
 }
 
+// 带进度回调的目录复制函数
 fn copy_dir_with_progress(
     source: &Path,
     target: &Path,
-    tx: &Sender<Result<(), String>>,
+    tx: &Sender<Result<String, String>>,
 ) -> Result<(), String> {
-    let entries = fs::read_dir(source).map_err(|err| format!("无法读取目录: {}", err))?;
-    let total_entries = entries.count() as f32;
-    let mut copied_entries = 0;
+    let entries: Vec<_> = fs::read_dir(source)
+        .map_err(|err| format!("无法读取目录: {}", err))?
+        .collect();
 
-    for entry in fs::read_dir(source).map_err(|err| format!("无法读取目录: {}", err))? {
+    let total_entries = entries.len() as f32;
+    let mut copied_entries = 0.0;
+
+    for entry in entries {
         let entry = entry.map_err(|err| format!("无法读取条目: {}", err))?;
-        let file_type = entry.file_type().map_err(|err| format!("无法获取文件类型: {}", err))?;
+        let file_type = entry
+            .file_type()
+            .map_err(|err| format!("无法获取文件类型: {}", err))?;
 
         let src_path = entry.path();
         let dest_path = target.join(entry.file_name());
@@ -166,7 +180,7 @@ fn copy_dir_with_progress(
 
         copied_entries += 1.0;
         let progress = copied_entries / total_entries;
-        tx.send(Ok(())).unwrap(); // 更新进度
+        let _ = tx.send(Ok(format!("复制进度: {:.2}%", progress * 100.0)));
     }
 
     Ok(())
