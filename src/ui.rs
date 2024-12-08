@@ -5,11 +5,11 @@ use crate::scanner;
 use crate::utils;
 use crate::logger; // 导入 logger 模块
 use crate::ignore;
-use crate::move_module;
 use crate::open;
 use eframe::egui::{self, Grid, ScrollArea};
 use std::sync::mpsc::{Sender, Receiver};
 use std::collections::HashSet;
+use crate::move_module;
 
 pub struct AppDataCleaner { // 定义数据类型
     is_scanning: bool,
@@ -24,6 +24,7 @@ pub struct AppDataCleaner { // 定义数据类型
     //current_folder_type: String, // 新增字段
     previous_logging_state: bool, // 记录上一次日志启用状态
     ignored_folders: HashSet<String>,  // 忽略文件夹集合
+    move_module: Option<MoveModule>,
 }
 
 impl Default for AppDataCleaner { // 定义变量默认值
@@ -81,7 +82,7 @@ impl AppDataCleaner {
                     Ok(_) => {
                         logger::log_info(&format!("成功移动文件夹 '{}' 到 '{}'", folder, move_op.target_folder));
                     }
-                    Err(err) => {
+                    Err(err.to_string()) => {
                         logger::log_error(&err);
                     }
                 }
@@ -206,7 +207,12 @@ impl eframe::App for AppDataCleaner {
                                 self.confirm_delete = Some((folder.clone(), false));
                             }
                             if ui.button("移动").clicked() {
-                                
+                                let move_module = move_module::MoveModule {
+                                    show_window: true,
+                                    folder_name: folder.clone(),
+                                    ..Default::default()
+                                };
+                                self.move_module = Some(move_module);
                             }
                             if ui.button("忽略").clicked() {
                                 self.ignored_folders.insert(folder.clone());

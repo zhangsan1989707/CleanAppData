@@ -1,105 +1,173 @@
-// move_module.rs
 use eframe::egui;
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::sync::mpsc::{Sender, Receiver};
+use std::thread;
+use std::sync::mpsc;
 
-pub struct MoveOperation {
-    pub source_folder: PathBuf,
-    pub target_folder: PathBuf,
+pub struct MoveModule {
+    pub show_window: bool,
+    pub folder_name: String,
+    pub selected_path: Option<PathBuf>,
+    pub progress: f32, // 复制进度
+    pub status_message: Option<String>, // 操作状态
 }
 
-impl MoveOperation {
-    pub fn new(source_folder: PathBuf) -> Self {
-        MoveOperation {
-            source_folder,
-            target_folder: PathBuf::new(),
+impl Default for MoveModule {
+    fn default() -> Self {
+        Self {
+            show_window: false,
+            folder_name: String::new(),
+            selected_path: None,
+            progress: 0.0,
+            status_message: None,
+        }
+    }
+}
+
+impl MoveModule {
+    pub fn show_move_window(&mut self, ctx: &egui::Context) {
+        if self.show_window {
+            egui::Window::new("移动文件夹")
+                .resizable(false)
+                .collapsible(false)
+                .show(ctx, |ui| {
+                    ui.label(format!("需要移动的文件夹: {}", self.folder_name));
+                    
+                    if let Some(path) = &self.selected_path {
+                        ui.horizontal(|ui| {
+                            ui.label("目标路径:");
+                            ui.text_edit_singleline(&mut path.display().to_string());
+                        });
+                    } else {
+                        if ui.button("选择目标路径").clicked() {
+                            // TODO: 调用路径选择对话框，获取用户选择的目标路径
+                            self.selected_path = Some(PathBuf::from("C:/YourSelectedPath"));
+                        }
+                    }
+
+                    if let Some(message) = &self.status_message {
+                        ui.label(message);
+                    }
+
+                    if ui.button("确定").clicked() {
+                        if let Some(target_path) = &self.selected_path {
+                            if let Err(err) = self.move_folder_with_progress(&self.folder_name, target_path) {
+                                self.status_message = Some(format!("错误: {}", err));
+                            }
+                        }
+                    }
+                    
+                    if ui.button("取消").clicked() {
+                        self.show_window = false;
+                    }
+                });
         }
     }
 
-    pub fn choose_target_folder(&mut self, ctx: &egui::Context) -> bool {
-        let mut target_folder = String::new();
-        egui::SidePanel::left("move_folder").show(ctx, |ui| {
-            ui.label("选择目标文件夹");
-            if ui.button("浏览").clicked() {
-                let mut file_browser = egui::FileDialog::new("select_folder", "选择文件夹")
-                    .action(egui::FileDialogAction::Open);
-                file_browser.show(ctx);
-                if let Some(path) = file_browser.selected_path() {
-                    target_folder = path.to_str().unwrap().to_string();
+    fn move_folder_with_progress(&mut self, source: &str, target: &Path) -> Result<(), String> {
+        let source_path = Path::new(source);
+        if !source_path.exists() {
+            return Err(format!("源文件夹 {} 不存在", source));
+        }
+
+        let (tx, rx) = mpsc::channel();
+        self.status_message = Some("正在移动文件夹...".to_string());
+
+        let target_path = target.to_path_buf();
+        let source_path = source_path.to_path_buf();
+
+        thread::spawn(move || {
+            if let Err(err) = fs::create_dir_all(&target_path) {
+                tx.send(Err(format!("无法创建目标目录: {}", err))).unwrap();
+                return;
+            }
+
+            if let Err(err) = copy_dir_with_progress(&source_path, &target_path, &tx) {
+                tx.send(Err(format!("复制失败: {}", err))).unwrap();
+                return;
+            }
+
+            // 校验哈希值
+            // TODO: 哈希校验逻辑
+
+            // 删除原文件夹
+            if let Err(err) = fs::remove_dir_all(&source_path) {
+                tx.send(Err(format!("删除源目录失败: {}", err))).unwrap();
+                return;
+            }
+
+            // 创建符号链接
+            let output = std::process::Command::new("cmd")
+                .args(["/C", "mklink", "/D", source_path.to_str().unwrap(), target_path.to_str().unwrap()])
+                .output();
+
+            match output {
+                Ok(output) if output.status.success() => {
+                    tx.send(Ok(format!(
+                        "为 {} <<===>> {} 创建的符号链接",
+                        source_path.display(),
+                        target_path.display()
+                    )))
+                    .unwrap();
+                }
+                Ok(output) => {
+                    tx.send(Err(format!(
+                        "创建符号链接失败: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    )))
+                    .unwrap();
+                }
+                Err(err) => {
+                    tx.send(Err(format!("符号链接命令执行失败: {}", err))).unwrap();
                 }
             }
-            ui.text_edit_singleline(&mut target_folder);
         });
-        if !target_folder.is_empty() {
-            self.target_folder = PathBuf::from(target_folder);
-            true
-        } else {
-            false
-        }
-    }
 
-    pub fn confirm_and_move(&self, ctx: &egui::Context) -> bool {
-        egui::Dialog::new("confirm_move")
-            .default_width(400.0)
-            .show(ctx, |ui| {
-                ui.label(format!("您正在将 {} 移动至 {}", self.source_folder.display(), self.target_folder.display()));
-                ui.label("这可能导致UWP程序异常！");
-                if ui.button("确定").clicked() {
-                    ui.close_modal(true);
+        for msg in rx {
+            match msg {
+                Ok(status) => {
+                    self.status_message = Some(status);
+                    self.progress = 1.0; // 完成
                 }
-                ui.button("取消");
-            })
-    }
-
-    pub fn perform_move(&self) -> Result<(), String> {
-        // 复制文件夹内容到目标路径
-        self.copy_folder(&self.source_folder, &self.target_folder)?;
-        // 校验哈希值
-        if !self.check_hash(&self.source_folder, &self.target_folder) {
-            return Err("哈希校验失败".to_string());
-        }
-        // 删除原文件夹
-        self.remove_dir_all(&self.source_folder)?;
-        // 创建符号链接
-        self.create_symbolic_link(&self.source_folder, &self.target_folder)?;
-        Ok(())
-    }
-
-    fn copy_folder(&self, source: &Path, target: &Path) -> Result<(), String> {
-        fs::create_dir_all(&target)?;
-        for entry in fs::read_dir(source).map_err(|e| e.to_string())? {
-            let entry = entry.map_err(|e| e.to_string())?;
-            let target_path = target.join(entry.file_name());
-            if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                self.copy_folder(&entry.path(), &target_path)?;
-            } else {
-                let mut src_file = File::open(entry.path()).map_err(|e| e.to_string())?;
-                let mut dest_file = File::create(&target_path).map_err(|e| e.to_string())?;
-                io::copy(&mut src_file, &mut dest_file).map_err(|e| e.to_string())?;
+                Err(err) => {
+                    self.status_message = Some(err);
+                    break;
+                }
             }
         }
+
         Ok(())
     }
+}
 
-    fn check_hash(&self, source: &Path, target: &Path) -> bool {
-        // 这里需要实现哈希校验逻辑，为了简化，我们假设总是返回true
-        true
-    }
+fn copy_dir_with_progress(
+    source: &Path,
+    target: &Path,
+    tx: &Sender<Result<(), String>>,
+) -> Result<(), String> {
+    let entries = fs::read_dir(source).map_err(|err| format!("无法读取目录: {}", err))?;
+    let total_entries = entries.count() as f32;
+    let mut copied_entries = 0;
 
-    fn remove_dir_all(&self, path: &Path) -> Result<(), String> {
-        fs::remove_dir_all(path).map_err(|e| e.to_string())
-    }
+    for entry in fs::read_dir(source).map_err(|err| format!("无法读取目录: {}", err))? {
+        let entry = entry.map_err(|err| format!("无法读取条目: {}", err))?;
+        let file_type = entry.file_type().map_err(|err| format!("无法获取文件类型: {}", err))?;
 
-    fn create_symbolic_link(&self, source: &Path, target: &Path) -> Result<(), String> {
-        let output = Command::new("cmd")
-            .args(&["/C", "mklink", "/D", source.to_str().unwrap(), target.to_str().unwrap()])
-            .output()
-            .map_err(|e| e.to_string())?;
-        if !output.status.success() {
-            return Err(String::from_utf8_lossy(&output.stderr).to_string());
+        let src_path = entry.path();
+        let dest_path = target.join(entry.file_name());
+
+        if file_type.is_dir() {
+            fs::create_dir_all(&dest_path).map_err(|err| format!("无法创建目录: {}", err))?;
+            copy_dir_with_progress(&src_path, &dest_path, tx)?;
+        } else {
+            fs::copy(&src_path, &dest_path).map_err(|err| format!("无法复制文件: {}", err))?;
         }
-        Ok(())
+
+        copied_entries += 1.0;
+        let progress = copied_entries / total_entries;
+        tx.send(Ok(())).unwrap(); // 更新进度
     }
+
+    Ok(())
 }
