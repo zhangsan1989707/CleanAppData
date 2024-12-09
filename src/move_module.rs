@@ -1,3 +1,4 @@
+use crate::logger;
 use eframe::egui;
 use native_dialog::FileDialog;
 use std::fs;
@@ -83,6 +84,7 @@ impl MoveModule {
         if !source_path.exists() {
             self.status_message = Some(format!("源文件夹不存在: {}", source_path.display()));
             println!("源文件夹不存在: {}", source_path.display());
+            logger::log_error(&format!("源文件夹不存在: {}", source_path.display()));
             return;
         }
 
