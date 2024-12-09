@@ -1,46 +1,47 @@
 use crate::about;
 use crate::confirmation;
 use crate::delete;
+use crate::ignore;
+use crate::logger; // 导入 logger 模块
+use crate::move_module; // 导入移动模块
+use crate::open;
 use crate::scanner;
 use crate::utils;
-use crate::logger; // 导入 logger 模块
-use crate::ignore;
-use crate::move_module;
-use crate::open;
 use eframe::egui::{self, Grid, ScrollArea};
-use std::sync::mpsc::{Sender, Receiver};
 use std::collections::HashSet;
+use std::sync::mpsc::{Receiver, Sender};
 
-pub struct AppDataCleaner { // 定义数据类型
+pub struct AppDataCleaner {
     is_scanning: bool,
     current_folder: Option<String>,
     folder_data: Vec<(String, u64)>,
     show_about_window: bool,                // 确保字段存在
     confirm_delete: Option<(String, bool)>, // 保存要确认删除的文件夹状态
-    selected_appdata_folder: String, // 新增字段
+    selected_appdata_folder: String,        // 新增字段
     tx: Option<Sender<(String, u64)>>,
     rx: Option<Receiver<(String, u64)>>,
-    is_logging_enabled: bool,  // 控制日志是否启用
-    //current_folder_type: String, // 新增字段
-    previous_logging_state: bool, // 记录上一次日志启用状态
-    ignored_folders: HashSet<String>,  // 忽略文件夹集合
+    is_logging_enabled: bool,             // 控制日志是否启用
+    previous_logging_state: bool,         // 记录上一次日志启用状态
+    ignored_folders: HashSet<String>,     // 忽略文件夹集合
+    move_module: move_module::MoveModule, // 移动模块实例
 }
 
-impl Default for AppDataCleaner { // 定义变量默认值
+impl Default for AppDataCleaner {
     fn default() -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
         Self {
             is_scanning: false,
             current_folder: None,
             folder_data: vec![],
-            show_about_window: false, // 默认值
-            confirm_delete: None,     // 初始化为 None
+            show_about_window: false,                       // 默认值
+            confirm_delete: None,                           // 初始化为 None
             selected_appdata_folder: "Roaming".to_string(), // 默认值为 Roaming
             tx: Some(tx),
             rx: Some(rx),
-            is_logging_enabled: false,  // 默认禁用日志
+            is_logging_enabled: false,     // 默认禁用日志
             previous_logging_state: false, // 初始时假定日志系统未启用
             ignored_folders: ignore::load_ignored_folders(),
+            move_module: Default::default(),
         }
     }
 }
@@ -96,7 +97,10 @@ impl eframe::App for AppDataCleaner {
                         }
                     } else {
                         eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
-                        logger::log_error(&format!("无法获取 {} 文件夹路径", self.selected_appdata_folder));
+                        logger::log_error(&format!(
+                            "无法获取 {} 文件夹路径",
+                            self.selected_appdata_folder
+                        ));
                     }
                 }
                 self.confirm_delete = None; // 清除状态
@@ -114,23 +118,13 @@ impl eframe::App for AppDataCleaner {
             ui.checkbox(&mut self.is_logging_enabled, "启用日志");
 
             ui.menu_button("切换文件夹", |ui| {
-                if ui.button("Roaming").clicked() {
-                    self.selected_appdata_folder = "Roaming".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
-                    ui.close_menu();
-                }
-                if ui.button("Local").clicked() {
-                    self.selected_appdata_folder = "Local".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
-                    ui.close_menu();
-                }
-                if ui.button("LocalLow").clicked() {
-                    self.selected_appdata_folder = "LocalLow".to_string();
-                    self.folder_data.clear(); // 清空扫描结果
-                    self.is_scanning = false; // 重置扫描状态
-                    ui.close_menu();
+                for folder in ["Roaming", "Local", "LocalLow"] {
+                    if ui.button(folder).clicked() {
+                        self.selected_appdata_folder = folder.to_string();
+                        self.folder_data.clear();
+                        self.is_scanning = false;
+                        ui.close_menu();
+                    }
                 }
             });
             ui.label(format!("当前目标: {}", self.selected_appdata_folder));
@@ -163,59 +157,34 @@ impl eframe::App for AppDataCleaner {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
                     ui.label("文件夹");
                     ui.label("大小");
-                    ui.label("父级百分比"); // 后续内容，死机暂时不处理
-                    ui.label("使用软件");
                     ui.label("操作");
                     ui.end_row();
 
                     for (folder, size) in &self.folder_data {
-                        let is_ignored = self.ignored_folders.contains(folder);
-                        if is_ignored {
-                            ui.add_enabled(false, egui::Label::new(egui::RichText::new(folder).color(egui::Color32::GRAY)));
+                        if self.ignored_folders.contains(folder) {
+                            ui.add_enabled(
+                                false,
+                                egui::Label::new(
+                                    egui::RichText::new(folder).color(egui::Color32::GRAY),
+                                ),
+                            );
                         } else {
                             ui.label(folder);
                         }
                         ui.label(utils::format_size(*size));
-                        ui.label("敬请期待"); // 百分比计算，一直死机没解决，代码在dev分支
-                        ui.label("敬请期待");
 
                         if !self.ignored_folders.contains(folder) {
                             if ui.button("彻底删除").clicked() {
                                 self.confirm_delete = Some((folder.clone(), false));
                             }
                             if ui.button("移动").clicked() {
-                                println!("show_move_dialog is called");
-                                let folder_path = utils::get_appdata_dir(&self.selected_appdata_folder)
-                                    .unwrap_or_default()
-                                    .join(folder);
-                            
-                                move_module::show_move_dialog(ctx, folder, &folder_path, |target_path| {
-                                    println!("Confirmed move to {:?}", target_path);
-                                    let progress = |p: f64| {
-                                        ctx.request_repaint();
-                                        println!("移动进度: {:.2}%", p * 100.0);
-                                    };
-                            
-                                    if let Err(err) = move_module::move_folder(&folder_path, &target_path, &progress) {
-                                        eprintln!("移动文件夹失败: {}", err);
-                                        logger::log_error(&format!("移动文件夹失败: {}", err));
-                                        return;
-                                    }
-                            
-                                    if let Err(err) = move_module::verify_and_create_symlink(&folder_path, &target_path) {
-                                        eprintln!("符号链接创建失败: {}", err);
-                                        logger::log_error(&format!("符号链接创建失败: {}", err));
-                                        return;
-                                    }
-                            
-                                    logger::log_info(&format!("文件夹 {} 成功移动至 {}", folder, target_path.display()));
-                                });
+                                self.move_module.show_window = true;
+                                self.move_module.folder_name = folder.clone();
                             }
                             if ui.button("忽略").clicked() {
                                 self.ignored_folders.insert(folder.clone());
                                 ignore::save_ignored_folders(&self.ignored_folders);
-                                println!("文件夹 '{}' 已被忽略", folder);
-                                log::info!("文件夹 '{}' 已被忽略", folder);
+                                logger::log_info(&format!("文件夹 '{}' 已被忽略", folder));
                             }
                         } else {
                             ui.add_enabled(false, |ui: &mut egui::Ui| {
@@ -225,23 +194,14 @@ impl eframe::App for AppDataCleaner {
                                 response1 | response2 | response3 // 返回合并的 Response
                             });
                         }
-                        // 操作区内逻辑，新增 "打开" 按钮
                         if ui.button("打开").clicked() {
-                            if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
+                            if let Some(base_path) =
+                                utils::get_appdata_dir(&self.selected_appdata_folder)
+                            {
                                 let full_path = base_path.join(folder);
-                                match open::open_folder(&full_path) {
-                                    Ok(_) => {
-                                        println!("成功打开文件夹: {}", full_path.display());
-                                        logger::log_info(&format!("成功打开文件夹: {}", full_path.display()));
-                                    }
-                                    Err(err) => {
-                                        eprintln!("无法打开文件夹: {}", err);
-                                        logger::log_error(&format!("无法打开文件夹: {}", err));
-                                    }
+                                if let Err(err) = open::open_folder(&full_path) {
+                                    logger::log_error(&format!("无法打开文件夹: {}", err));
                                 }
-                            } else {
-                                eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
-                                logger::log_error(&format!("无法获取 {} 文件夹路径", self.selected_appdata_folder));
                             }
                         }
                         ui.end_row();
@@ -255,11 +215,7 @@ impl eframe::App for AppDataCleaner {
             about::show_about_window(ctx, &mut self.show_about_window);
         }
 
-        // 根据日志开关决定是否记录日志
-        //    log::info!("日志系统已启用");
-        //if self.is_logging_enabled {
-        //} else {
-        //    log::info!("日志系统已禁用");
-        //}
+        // 显示移动窗口
+        self.move_module.show_move_window(ctx);
     }
 }
