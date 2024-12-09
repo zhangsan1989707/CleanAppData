@@ -120,34 +120,47 @@ impl MoveModule {
             }
 
             // 创建符号链接
-            let output = std::process::Command::new("cmd")
-                .args([
-                    "/C",
-                    "mklink",
-                    "/D",
-                    source_path.to_str().unwrap(),
-                    target_path.to_str().unwrap(),
-                ])
-                .output();
+            if cfg!(target_os = "windows") {
+                let output = std::process::Command::new("cmd")
+                    .args([
+                        "/C",
+                        "mklink",
+                        "/D",
+                        &format!("\"{}\"", source_path.display()),
+                        &format!("\"{}\"", target_path.display()),
+                    ])
+                    .output();
 
-            match output {
-                Ok(output) if output.status.success() => {
-                    let _ = tx.send(Ok(format!(
-                        "创建符号链接成功: {} -> {}",
-                        source_path.display(),
-                        target_path.display()
-                    )));
+                match output {
+                    Ok(output) if output.status.success() => {
+                        let _ = tx.send(Ok(format!(
+                            "创建符号链接成功: {} -> {}",
+                            source_path.display(),
+                            target_path.display()
+                        )));
+                    }
+                    Ok(output) => {
+                        let _ = tx.send(Err(format!(
+                            "创建符号链接失败: {}",
+                            String::from_utf8_lossy(&output.stderr)
+                        )));
+                    }
+                    Err(err) => {
+                        let _ = tx.send(Err(format!("符号链接命令执行失败: {}", err)));
+                    }
                 }
-                Ok(output) => {
-                    let _ = tx.send(Err(format!(
-                        "创建符号链接失败: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    )));
-                }
-                Err(err) => {
-                    let _ = tx.send(Err(format!("符号链接命令执行失败: {}", err)));
-                }
-            }
+            } //else {
+              // 非 Windows 系统，尝试创建软链接
+              //if let Err(err) = std::os::unix::fs::symlink(&target_path, &source_path) {
+              //    let _ = tx.send(Err(format!("创建符号链接失败: {}", err)));
+              //} else {
+              //    let _ = tx.send(Ok(format!(
+              //        "创建符号链接成功: {} -> {}",
+              //        source_path.display(),
+              //        target_path.display()
+              //    )));
+              //}
+              //}
         });
 
         // 主线程接收消息并更新状态
