@@ -1,14 +1,15 @@
 use crate::logger;
+use dirs_next as dirs;
 use eframe::egui;
 use native_dialog::FileDialog;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::thread;
+use std::thread; // 如果使用的是 `dirs-next`
 
 pub struct MoveModule {
     pub show_window: bool,
-    pub folder_name: String,            // 源文件夹路径
+    pub folder_name: String,            // 源文件夹名（相对路径）
     pub selected_path: Option<PathBuf>, // 目标路径
     pub progress: f32,                  // 复制进度
     pub status_message: Option<String>, // 操作状态
@@ -78,9 +79,17 @@ impl MoveModule {
     }
 
     fn start_move_folder(&mut self, target_path: PathBuf) {
-        // 确保源文件夹路径是完整路径
-        let source_path = PathBuf::from(&self.folder_name);
+        // 获取系统 AppData 路径
+        let appdata_path = dirs::data_dir()
+            .or_else(|| dirs::config_dir()) // 备用获取 Roaming 路径
+            .unwrap_or_else(|| PathBuf::from("%appdata%"));
 
+        let source_path = appdata_path.join(&self.folder_name);
+
+        // 调试日志打印完整路径
+        println!("完整源文件夹路径: {}", source_path.display());
+
+        // 验证源文件夹是否存在
         if !source_path.exists() {
             self.status_message = Some(format!("源文件夹不存在: {}", source_path.display()));
             println!("源文件夹不存在: {}", source_path.display());
