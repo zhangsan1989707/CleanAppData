@@ -7,6 +7,7 @@ use crate::move_module; // 导入移动模块
 use crate::open;
 use crate::scanner;
 use crate::utils;
+use crate::yaml_loader::FolderDescriptions;
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
 use std::sync::mpsc::{Receiver, Sender};
@@ -24,6 +25,7 @@ pub struct AppDataCleaner {
     previous_logging_state: bool,         // 记录上一次日志启用状态
     ignored_folders: HashSet<String>,     // 忽略文件夹集合
     move_module: move_module::MoveModule, // 移动模块实例
+    folder_descriptions: Option<FolderDescriptions>,
 }
 
 impl Default for AppDataCleaner {
@@ -42,6 +44,7 @@ impl Default for AppDataCleaner {
             previous_logging_state: false, // 初始时假定日志系统未启用
             ignored_folders: ignore::load_ignored_folders(),
             move_module: Default::default(),
+            folder_descriptions: None,
         }
     }
 }
@@ -72,6 +75,14 @@ impl AppDataCleaner {
 impl eframe::App for AppDataCleaner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
+
+        // 加载描述文件
+        if self.folder_descriptions.is_none() {
+            match FolderDescriptions::load_from_yaml("folders_description.yaml") {
+                Ok(descriptions) => self.folder_descriptions = Some(descriptions),
+                Err(e) => eprintln!("加载 YAML 文件失败: {}", e),
+            }
+        }
 
         if self.is_logging_enabled != self.previous_logging_state {
             logger::init_logger(self.is_logging_enabled); // 初始化日志系统
@@ -157,6 +168,7 @@ impl eframe::App for AppDataCleaner {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
                     ui.label("文件夹");
                     ui.label("大小");
+                    ui.label("描述");
                     ui.label("操作");
                     ui.end_row();
 
@@ -172,6 +184,16 @@ impl eframe::App for AppDataCleaner {
                             ui.label(folder);
                         }
                         ui.label(utils::format_size(*size));
+
+                        // 读取描述信息并显示
+                        let description = self.folder_descriptions.as_ref().and_then(|desc| {
+                            desc.get_description(folder, &self.selected_appdata_folder)
+                        });
+                        if let Some(desc) = description {
+                            ui.label(desc);
+                        } else {
+                            ui.label("无描述");
+                        }
 
                         if !self.ignored_folders.contains(folder) {
                             if ui.button("彻底删除").clicked() {
