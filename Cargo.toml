@@ -13,3 +13,5 @@ log = "0.4"
 simplelog = "0.12"
 sha2 = "0.10"
 native-dialog = "0.7.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9.34+deprecated"
