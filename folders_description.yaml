@@ -5,10 +5,12 @@ Roaming:
   Mozilla: "Firefox"
   #firefox: "Mozilla Firefox 浏览器配置文件"
   clash_win: "Clash for Windows 配置文件"
+  RustDesk: "RustDesk 配置文件"
   VMWare: "VMWare 配置文件"
   Motrix: "Motrix 配置文件"
   zen: "Zen 网络配置"
 Local:
+  # 示例：文件夹名: "描述"
   BCUT: "必剪数据"
   Temp: "系统临时文件"
   myapp: "自定义应用配置文件"
@@ -21,3 +23,4 @@ Local:
   zen: "Zen 浏览器用户数据"
   rustdesk: "RustDesk 用户数据"
 LocalLow:
+  # 示例：文件夹名: "描述"
