@@ -26,6 +26,7 @@ pub struct AppDataCleaner {
     ignored_folders: HashSet<String>,     // 忽略文件夹集合
     move_module: move_module::MoveModule, // 移动模块实例
     folder_descriptions: Option<FolderDescriptions>,
+    yaml_error_logged: bool, // 新增字段，用于标记是否已经记录过错误
 }
 
 impl Default for AppDataCleaner {
@@ -45,6 +46,7 @@ impl Default for AppDataCleaner {
             ignored_folders: ignore::load_ignored_folders(),
             move_module: Default::default(),
             folder_descriptions: None,
+            yaml_error_logged: false, // 初始时假定未记录过错误
         }
     }
 }
@@ -80,7 +82,12 @@ impl eframe::App for AppDataCleaner {
         if self.folder_descriptions.is_none() {
             match FolderDescriptions::load_from_yaml("folders_description.yaml") {
                 Ok(descriptions) => self.folder_descriptions = Some(descriptions),
-                Err(e) => eprintln!("加载 YAML 文件失败: {}", e),
+                Err(e) => {
+                    if !self.yaml_error_logged {
+                        eprintln!("加载 YAML 文件失败: {}", e);
+                        self.yaml_error_logged = true; // 记录错误，避免重复输出
+                    }
+                }
             }
         }
 
