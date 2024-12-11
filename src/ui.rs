@@ -85,6 +85,7 @@ impl eframe::App for AppDataCleaner {
                 Err(e) => {
                     if !self.yaml_error_logged {
                         eprintln!("加载 YAML 文件失败: {}", e);
+                        logger::log_error(&format!("加载 YAML 文件失败: {}", e));
                         self.yaml_error_logged = true; // 记录错误，避免重复输出
                     }
                 }
