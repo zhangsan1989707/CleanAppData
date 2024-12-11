@@ -1,10 +1,10 @@
+use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::{fs, path::PathBuf};
-use std::path::Path;
 
-use dirs_next as dirs;
-use crate::logger; // 引入日志模块
+use crate::logger;
+use dirs_next as dirs; // 引入日志模块
 
 pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
     println!("开始扫描 {} 类型的文件夹", folder_type);
