@@ -27,3 +27,4 @@ Cargo.lock
 # 日志文件
 *.log
 adcignore.txt
+/rules

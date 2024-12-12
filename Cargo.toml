@@ -1,6 +1,6 @@
 [package]
 name = "AppDataCleaner"
-version = "1.0.3-b1"
+version = "1.0.3-b3"
 edition = "2021"
 
 [dependencies]
@@ -11,5 +11,7 @@ tokio = { version = "1", features = ["full"] }
 walkdir = "2.4"
 log = "0.4"
 simplelog = "0.12"
-rfd = "0.15.1"
 sha2 = "0.10"
+native-dialog = "0.7.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9.34+deprecated"

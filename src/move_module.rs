@@ -1,106 +1,233 @@
-use std::fs::{self, File};
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
-use egui::Context;
-use crate::utils;
 use crate::logger;
+use dirs_next as dirs;
 use eframe::egui;
+use native_dialog::FileDialog;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread; // 如果使用的是 `dirs-next`
 
-pub fn show_move_dialog(
-    ctx: &Context,
-    folder_name: &str,
-    source_path: &Path,
-    on_confirm: impl FnOnce(PathBuf),
-) {
-    let mut selected_path = None;
+pub struct MoveModule {
+    pub show_window: bool,
+    pub folder_name: String,            // 源文件夹名（相对路径）
+    pub selected_path: Option<PathBuf>, // 目标路径
+    pub progress: f32,                  // 复制进度
+    pub status_message: Option<String>, // 操作状态
+}
 
-    egui::Window::new("选择目标文件夹").show(ctx, |ui| {
-        println!("Window rendered");  // 确保窗口被渲染
-        if ui.button("选择目标文件夹").clicked() {
-            println!("选择目标文件夹按钮被点击");  // 确保按钮点击事件被捕捉
-            if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                println!("Selected path: {:?}", path);
-                logger::log_info(&format!("Selected path: {:?}", path));
-                println!("选择的目标路径: {:?}", path);
-                selected_path = Some(path);
-            }
+impl Default for MoveModule {
+    fn default() -> Self {
+        Self {
+            show_window: false,
+            folder_name: String::new(),
+            selected_path: None,
+            progress: 0.0,
+            status_message: None,
+        }
+    }
+}
+
+impl MoveModule {
+    pub fn show_move_window(&mut self, ctx: &egui::Context) {
+        if self.show_window {
+            egui::Window::new("移动文件夹")
+                .resizable(false)
+                .collapsible(false)
+                .show(ctx, |ui| {
+                    ui.label(format!("需要移动的文件夹: {}", self.folder_name));
+
+                    // 显示目标路径选择
+                    ui.horizontal(|ui| {
+                        ui.label("目标路径:");
+                        if let Some(path) = &self.selected_path {
+                            ui.label(path.display().to_string());
+                        }
+                        if ui.button("选择目标路径").clicked() {
+                            // 使用文件对话框选择目标路径
+                            if let Ok(Some(path)) = FileDialog::new().show_open_single_dir() {
+                                self.selected_path = Some(path);
+                                println!(
+                                    "目标路径选择: {}",
+                                    self.selected_path.as_ref().unwrap().display()
+                                );
+                            }
+                        }
+                    });
+
+                    // 显示状态信息
+                    if let Some(message) = &self.status_message {
+                        ui.label(message);
+                    }
+
+                    // 显示进度条
+                    ui.add(egui::ProgressBar::new(self.progress).show_percentage());
+
+                    // 操作按钮
+                    if ui.button("确定").clicked() {
+                        if let Some(target_path) = &self.selected_path {
+                            self.start_move_folder(target_path.clone());
+                        } else {
+                            self.status_message = Some("请选择目标路径".to_string());
+                        }
+                    }
+
+                    if ui.button("取消").clicked() {
+                        self.show_window = false;
+                    }
+                });
+        }
+    }
+
+    fn start_move_folder(&mut self, target_path: PathBuf) {
+        // 获取系统 AppData 路径
+        let appdata_path = dirs::data_dir()
+            .or_else(|| dirs::config_dir()) // 备用获取 Roaming 路径
+            .unwrap_or_else(|| PathBuf::from("%appdata%"));
+
+        let source_path = appdata_path.join(&self.folder_name);
+
+        // 调试日志打印完整路径
+        println!("完整源文件夹路径: {}", source_path.display());
+
+        // 验证源文件夹是否存在
+        if !source_path.exists() {
+            self.status_message = Some(format!("源文件夹不存在: {}", source_path.display()));
+            println!("源文件夹不存在: {}", source_path.display());
+            logger::log_error(&format!("源文件夹不存在: {}", source_path.display()));
+            return;
         }
 
-        if let Some(target_path) = &selected_path {
-            let message = format!(
-                "您正在将 {} 移动至 {}，确定操作？\n这可能导致 UWP 程序异常！",
+        let (tx, rx): (
+            Sender<Result<String, String>>,
+            Receiver<Result<String, String>>,
+        ) = mpsc::channel();
+        self.progress = 0.0;
+        self.status_message = Some("正在移动文件夹...".to_string());
+
+        // 启动后台线程执行移动逻辑
+        thread::spawn(move || {
+            println!(
+                "开始复制: 从 {} 到 {}",
                 source_path.display(),
                 target_path.display()
             );
-            if ui.button("确认").clicked() {
-                println!("确认按钮被点击");  // 确保确认按钮点击事件
-                on_confirm(target_path.clone());
-                ui.close_menu();
-                println!("Move confirmed to {:?}", target_path); // 确认动作
+
+            if let Err(err) = fs::create_dir_all(&target_path) {
+                let _ = tx.send(Err(format!("无法创建目标目录: {}", err)));
+                return;
             }
-            if ui.button("取消").clicked() {
-                println!("取消按钮被点击");  // 确保取消按钮点击事件
-                ui.close_menu();
+
+            if let Err(err) = copy_dir_with_progress(&source_path, &target_path, &tx) {
+                let _ = tx.send(Err(format!("复制失败: {}", err)));
+                return;
             }
-            ui.label(&message);
+
+            // 删除原文件夹
+            if let Err(err) = fs::remove_dir_all(&source_path) {
+                let _ = tx.send(Err(format!("删除源目录失败: {}", err)));
+                return;
+            }
+
+            // 创建符号链接
+            if cfg!(target_os = "windows") {
+                let output = std::process::Command::new("cmd")
+                    .args([
+                        "/C",
+                        "mklink",
+                        "/D",
+                        &format!("\"{}\"", source_path.display()),
+                        &format!("\"{}\"", target_path.display()),
+                    ])
+                    .output();
+
+                match output {
+                    Ok(output) if output.status.success() => {
+                        let _ = tx.send(Ok(format!(
+                            "创建符号链接成功: {} -> {}",
+                            source_path.display(),
+                            target_path.display()
+                        )));
+                    }
+                    Ok(output) => {
+                        let _ = tx.send(Err(format!(
+                            "创建符号链接失败: {}",
+                            String::from_utf8_lossy(&output.stderr)
+                        )));
+                    }
+                    Err(err) => {
+                        let _ = tx.send(Err(format!("符号链接命令执行失败: {}", err)));
+                    }
+                }
+            } //else {
+              // 非 Windows 系统，尝试创建软链接
+              //if let Err(err) = std::os::unix::fs::symlink(&target_path, &source_path) {
+              //    let _ = tx.send(Err(format!("创建符号链接失败: {}", err)));
+              //} else {
+              //    let _ = tx.send(Ok(format!(
+              //        "创建符号链接成功: {} -> {}",
+              //        source_path.display(),
+              //        target_path.display()
+              //    )));
+              //}
+              //}
+        });
+
+        // 主线程接收消息并更新状态
+        for msg in rx {
+            match msg {
+                Ok(status) => {
+                    self.status_message = Some(status);
+                    self.progress = 1.0;
+                    break;
+                }
+                Err(err) => {
+                    self.status_message = Some(err);
+                    break;
+                }
+            }
         }
-    });
+    }
 }
 
-pub fn move_folder(
+// 带进度回调的目录复制函数
+fn copy_dir_with_progress(
     source: &Path,
     target: &Path,
-    on_progress: &dyn Fn(f64), // 使用引用的动态函数类型
-) -> io::Result<()> {
-    println!("Starting folder move from {:?} to {:?}", source, target);
-    logger::log_info(&format!("Starting folder move from {:?} to {:?}", source, target));
-    let entries: Vec<_> = fs::read_dir(source)?.collect::<Result<_, _>>()?;
-    let total_files = entries.len();
-    let mut copied_files = 0;
+    tx: &Sender<Result<String, String>>,
+) -> Result<(), String> {
+    let entries: Vec<_> = fs::read_dir(source)
+        .map_err(|err| format!("无法读取目录: {}", err))?
+        .collect();
 
-    fs::create_dir_all(target).expect("Failed to create target directory");
+    let total_entries = entries.len() as f32;
+    let mut copied_entries = 0.0;
 
-    for entry in fs::read_dir(source)? {
-        let entry = entry?;
-        let file_type = entry.file_type()?;
-        let source_path = entry.path();
-        let target_path = target.join(entry.file_name());
-        println!("Processing entry: {:?}", entry.path());
+    for entry in entries {
+        let entry = entry.map_err(|err| format!("无法读取条目: {}", err))?;
+        let file_type = entry
+            .file_type()
+            .map_err(|err| format!("无法获取文件类型: {}", err))?;
+
+        let src_path = entry.path();
+        let dest_path = target.join(entry.file_name());
+
+        println!(
+            "复制文件: 从 {} 到 {}",
+            src_path.display(),
+            dest_path.display()
+        );
 
         if file_type.is_dir() {
-            move_folder(&source_path, &target_path, on_progress)?; // 递归移动子目录
+            fs::create_dir_all(&dest_path).map_err(|err| format!("无法创建目录: {}", err))?;
+            copy_dir_with_progress(&src_path, &dest_path, tx)?;
         } else {
-            fs::copy(&source_path, &target_path)?; // 复制文件
+            fs::copy(&src_path, &dest_path).map_err(|err| format!("无法复制文件: {}", err))?;
         }
 
-        copied_files += 1;
-        on_progress((copied_files as f64) / (total_files as f64));
+        copied_entries += 1.0;
+        let progress = copied_entries / total_entries;
+        let _ = tx.send(Ok(format!("复制进度: {:.2}%", progress * 100.0)));
     }
 
     Ok(())
-}
-
-pub fn verify_and_create_symlink(source: &Path, target: &Path) -> io::Result<()> {
-    if !utils::compare_dirs_hash(source, target)? {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            "源文件夹与目标文件夹哈希值不匹配",
-        ));
-    }
-
-    fs::remove_dir_all(source)?;
-
-    let output = std::process::Command::new("cmd")
-        .args(["/C", "mklink", "/D", &source.display().to_string(), &target.display().to_string()])
-        .output()?;
-
-    let output_str = String::from_utf8_lossy(&output.stdout);
-    if output_str.contains("<<===>>") {
-        Ok(())
-    } else {
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "创建符号链接失败",
-        ))
-    }
 }
