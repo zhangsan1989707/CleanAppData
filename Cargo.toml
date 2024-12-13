@@ -7,11 +7,11 @@ edition = "2021"
 egui = "0.29.1"
 eframe = "0.29.1"
 dirs-next = "2.0"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.42.0", features = ["full"] }
 walkdir = "2.4"
 log = "0.4"
 simplelog = "0.12"
 sha2 = "0.10"
 native-dialog = "0.7.0"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.216", features = ["derive"] }
 serde_yaml = "0.9.34+deprecated"
