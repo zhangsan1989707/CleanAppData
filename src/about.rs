@@ -24,5 +24,7 @@ pub fn show_about_window(ctx: &egui::Context, open: &mut bool) {
             });
             ui.label("许可证: GPL-3.0");
             ui.label(format!("版本: {}", version));
+            ui.label("鸣谢:");
+            ui.hyperlink_to("egui", "https://github.com/emilk/egui");
         });
 }
