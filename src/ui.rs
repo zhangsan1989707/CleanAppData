@@ -80,7 +80,16 @@ impl eframe::App for AppDataCleaner {
 
         // 加载描述文件
         if self.folder_descriptions.is_none() {
-            self.folder_descriptions = load_folder_descriptions("folders_description.yaml", &mut self.yaml_error_logged);
+            match FolderDescriptions::load_from_yaml("folders_description.yaml") {
+                Ok(descriptions) => self.folder_descriptions = Some(descriptions),
+                Err(e) => {
+                    if !self.yaml_error_logged {
+                        eprintln!("加载 YAML 文件失败: {}", e);
+                        logger::log_error(&format!("加载 YAML 文件失败: {}", e));
+                        self.yaml_error_logged = true; // 记录错误，避免重复输出
+                    }
+                }
+            }
         }
 
         if self.is_logging_enabled != self.previous_logging_state {
@@ -94,28 +103,7 @@ impl eframe::App for AppDataCleaner {
         }
 
         // 删除确认弹窗逻辑
-        if let Some((folder_name, _)) = &self.confirm_delete {
-            let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
-            logger::log_info(&message);
-            if let Some(confirm) = confirmation::show_confirmation(ctx, &message) {
-                if confirm {
-                    if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
-                        let full_path = base_path.join(folder_name);
-                        if let Err(err) = delete::delete_folder(&full_path) {
-                            eprintln!("Error: {}", err);
-                            logger::log_error(&format!("Error: {}", err));
-                        }
-                    } else {
-                        eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
-                        logger::log_error(&format!(
-                            "无法获取 {} 文件夹路径",
-                            self.selected_appdata_folder
-                        ));
-                    }
-                }
-                self.confirm_delete = None; // 清除状态
-            }
-        }
+        confirmation::handle_delete_confirmation(ctx, &mut self.confirm_delete, &self.selected_appdata_folder);
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
