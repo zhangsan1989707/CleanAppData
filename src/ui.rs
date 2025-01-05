@@ -7,7 +7,7 @@ use crate::move_module; // 导入移动模块
 use crate::open;
 use crate::scanner;
 use crate::utils;
-use crate::yaml_loader::FolderDescriptions;
+use crate::yaml_loader::{FolderDescriptions, load_folder_descriptions};
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
 use std::sync::mpsc::{Receiver, Sender};
@@ -80,16 +80,7 @@ impl eframe::App for AppDataCleaner {
 
         // 加载描述文件
         if self.folder_descriptions.is_none() {
-            match FolderDescriptions::load_from_yaml("folders_description.yaml") {
-                Ok(descriptions) => self.folder_descriptions = Some(descriptions),
-                Err(e) => {
-                    if !self.yaml_error_logged {
-                        eprintln!("加载 YAML 文件失败: {}", e);
-                        logger::log_error(&format!("加载 YAML 文件失败: {}", e));
-                        self.yaml_error_logged = true; // 记录错误，避免重复输出
-                    }
-                }
-            }
+            self.folder_descriptions = load_folder_descriptions("folders_description.yaml", &mut self.yaml_error_logged);
         }
 
         if self.is_logging_enabled != self.previous_logging_state {

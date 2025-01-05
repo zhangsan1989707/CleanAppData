@@ -34,3 +34,18 @@ impl FolderDescriptions {
         }
     }
 }
+
+// 新增函数，用于加载文件夹描述
+pub fn load_folder_descriptions(file_path: &str, yaml_error_logged: &mut bool) -> Option<FolderDescriptions> {
+    match FolderDescriptions::load_from_yaml(file_path) {
+        Ok(descriptions) => Some(descriptions),
+        Err(e) => {
+            if !*yaml_error_logged {
+                eprintln!("加载 YAML 文件失败: {}", e);
+                crate::logger::log_error(&format!("加载 YAML 文件失败: {}", e));
+                *yaml_error_logged = true; // 记录错误，避免重复输出
+            }
+            None
+        }
+    }
+}
