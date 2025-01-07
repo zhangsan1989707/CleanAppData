@@ -3,7 +3,7 @@ use crate::logger;
 use crate::delete;
 use crate::utils;
 
-pub fn show_confirmation(ctx: &egui::Context, message: &str, status: &mut Option<String>) -> Option<bool> {
+pub fn show_confirmation(ctx: &egui::Context, message: &str, status: &Option<String>) -> Option<bool> {
     let mut result = None;
 
     egui::Window::new("确认操作")

@@ -27,6 +27,7 @@ pub struct AppDataCleaner {
     move_module: move_module::MoveModule, // 移动模块实例
     folder_descriptions: Option<FolderDescriptions>,
     yaml_error_logged: bool, // 新增字段，用于标记是否已经记录过错误
+    status: Option<String>,  // 添加 status 字段
 }
 
 impl Default for AppDataCleaner {
@@ -47,6 +48,7 @@ impl Default for AppDataCleaner {
             move_module: Default::default(),
             folder_descriptions: None,
             yaml_error_logged: false, // 初始时假定未记录过错误
+            status: None,             // 初始化为 None
         }
     }
 }
