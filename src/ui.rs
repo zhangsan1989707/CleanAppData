@@ -110,7 +110,7 @@ impl eframe::App for AppDataCleaner {
             ui.checkbox(&mut self.is_logging_enabled, "启用日志");
 
             ui.menu_button("切换文件夹", |ui| {
-                for folder in ["Roaming","Local","LocalLow"] {
+                for folder in ["Roaming", "Local", "LocalLow"] {
                     if ui.button(folder).clicked() {
                         self.selected_appdata_folder = folder.to_string();
                         self.folder_data.clear();
