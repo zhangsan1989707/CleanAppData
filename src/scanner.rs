@@ -34,6 +34,8 @@ pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
                     }
                 }
             }
+            // 发送一个特殊标志，表示扫描完成
+            tx.send(("__SCAN_COMPLETE__".to_string(), 0)).unwrap();
         });
     }
 }

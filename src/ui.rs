@@ -48,7 +48,8 @@ impl Default for AppDataCleaner {
             move_module: Default::default(),
             folder_descriptions: None,
             yaml_error_logged: false, // 初始时假定未记录过错误
-            status: None,             // 初始化为 None
+            //status: None,             // 初始化为 None
+            status: Some("未扫描".to_string()), // 初始化为 "未扫描"
         }
     }
 }
@@ -114,6 +115,7 @@ impl eframe::App for AppDataCleaner {
                         self.selected_appdata_folder = folder.to_string();
                         self.folder_data.clear();
                         self.is_scanning = false;
+                        self.status = Some("未扫描".to_string()); // 更新状态为 "未扫描"
                         ui.close_menu();
                     }
                 }
@@ -125,6 +127,7 @@ impl eframe::App for AppDataCleaner {
             if ui.button("立即扫描").clicked() && !self.is_scanning {
                 self.is_scanning = true;
                 self.folder_data.clear();
+                self.status = Some("扫描中...".to_string()); // 更新状态为 "扫描中..."
 
                 let tx = self.tx.clone().unwrap();
                 let folder_type = self.selected_appdata_folder.clone();
@@ -134,14 +137,19 @@ impl eframe::App for AppDataCleaner {
 
             if let Some(rx) = &self.rx {
                 while let Ok((folder, size)) = rx.try_recv() {
-                    self.folder_data.push((folder, size));
+                    // 检查是否接收到扫描完成标志
+                    if folder == "__SCAN_COMPLETE__" {
+                        self.is_scanning = false;
+                        self.status = Some("扫描完成".to_string()); // 更新状态为 "扫描完成"
+                    } else {
+                        self.folder_data.push((folder, size));
+                    }
                 }
             }
 
-            if self.is_scanning {
-                ui.label("扫描中...");
-            } else {
-                ui.label("扫描完成");
+            // 显示状态
+            if let Some(status) = &self.status {
+                ui.label(status);
             }
 
             ScrollArea::vertical().show(ui, |ui| {
@@ -220,6 +228,5 @@ impl eframe::App for AppDataCleaner {
 
         // 显示移动窗口
         self.move_module.show_move_window(ctx);
-        
     }
 }
