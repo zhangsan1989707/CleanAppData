@@ -134,12 +134,12 @@ impl eframe::App for AppDataCleaner {
 
             if let Some(rx) = &self.rx {
                 while let Ok((folder, size)) = rx.try_recv() {
-                    self.folder_data.push((folder, size));
-                }
-
-                // 如果接收到的文件夹数据为空，表示扫描已完成
-                if self.folder_data.is_empty() {
-                    self.is_scanning = false;
+                    // 检查是否接收到扫描完成标志
+                    if folder == "__SCAN_COMPLETE__" {
+                        self.is_scanning = false;
+                    } else {
+                        self.folder_data.push((folder, size));
+                    }
                 }
             }
 
