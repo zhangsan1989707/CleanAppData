@@ -26,6 +26,19 @@ pub fn show_confirmation(ctx: &egui::Context, message: &str) -> Option<bool> {
     result
 }
 
+// 新增函数，用于显示成功提示
+pub fn show_success(ctx: &egui::Context, message: &str) {
+    egui::Window::new("操作成功")
+        .collapsible(false)
+        .resizable(false)
+        .show(ctx, |ui| {
+            ui.label(message);
+            if ui.button("关闭").clicked() {
+                ui.close_menu(); // 关闭窗口
+            }
+        });
+}
+
 pub fn handle_delete_confirmation(
     ctx: &egui::Context,
     confirm_delete: &mut Option<(String, bool)>,
@@ -37,10 +50,16 @@ pub fn handle_delete_confirmation(
         if let Some(confirm) = show_confirmation(ctx, &message) {
             if confirm {
                 if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder) {
-                    let full_path = base_path.join(folder_name);
+                    let full_path = base_path.join(&folder_name); // 传递引用
                     if let Err(err) = delete::delete_folder(&full_path) {
                         eprintln!("Error: {}", err);
                         logger::log_error(&format!("Error: {}", err));
+                    } else {
+                        // 检查文件夹是否已成功删除
+                        if !full_path.exists() {
+                            let success_message = format!("文件夹 {} 已成功删除", folder_name);
+                            show_success(ctx, &success_message);
+                        }
                     }
                 } else {
                     eprintln!("无法获取 {} 文件夹路径", selected_appdata_folder);
