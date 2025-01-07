@@ -59,6 +59,8 @@ pub fn handle_delete_confirmation(
                             *status = Some(format!("删除文件夹 {} 时发生错误: {}", folder_name, err));
                         }
                     }
+                    // 成功删除文件夹后关闭弹窗
+                    *confirm_delete = None;
                 } else {
                     eprintln!("无法获取 {} 文件夹路径", selected_appdata_folder);
                     logger::log_error(&format!(
