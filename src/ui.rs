@@ -94,7 +94,7 @@ impl eframe::App for AppDataCleaner {
         }
 
         // 删除确认弹窗逻辑
-        confirmation::handle_delete_confirmation(ctx, &mut self.confirm_delete, &self.selected_appdata_folder);
+        confirmation::handle_delete_confirmation(ctx, &mut self.confirm_delete, &self.selected_appdata_folder, &mut self.status);
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
@@ -176,6 +176,7 @@ impl eframe::App for AppDataCleaner {
                         if !self.ignored_folders.contains(folder) {
                             if ui.button("彻底删除").clicked() {
                                 self.confirm_delete = Some((folder.clone(), false));
+                                self.status = None; // 每次点击"彻底删除"时清除状态
                             }
                             if ui.button("移动").clicked() {
                                 self.move_module.show_window = true;
@@ -217,5 +218,6 @@ impl eframe::App for AppDataCleaner {
 
         // 显示移动窗口
         self.move_module.show_move_window(ctx);
+        
     }
 }
