@@ -136,6 +136,11 @@ impl eframe::App for AppDataCleaner {
                 while let Ok((folder, size)) = rx.try_recv() {
                     self.folder_data.push((folder, size));
                 }
+
+                // 如果接收到的文件夹数据为空，表示扫描已完成
+                if self.folder_data.is_empty() {
+                    self.is_scanning = false;
+                }
             }
 
             if self.is_scanning {
@@ -220,6 +225,5 @@ impl eframe::App for AppDataCleaner {
 
         // 显示移动窗口
         self.move_module.show_move_window(ctx);
-        
     }
 }
