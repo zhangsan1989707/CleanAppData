@@ -97,7 +97,7 @@ impl eframe::App for AppDataCleaner {
         }
 
         // 删除确认弹窗逻辑
-        confirmation::handle_delete_confirmation(ctx, &mut self.confirm_delete, &self.selected_appdata_folder, &mut self.status);
+        confirmation::handle_delete_confirmation(ctx, &mut self.confirm_delete, &self.selected_appdata_folder, &mut self.status, &mut self.folder_data); // 传递 folder_data
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {

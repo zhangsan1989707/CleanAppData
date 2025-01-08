@@ -42,6 +42,7 @@ pub fn handle_delete_confirmation(
     confirm_delete: &mut Option<(String, bool)>,
     selected_appdata_folder: &str,
     status: &mut Option<String>,
+    folder_data: &mut Vec<(String, u64)>, // 新增参数
 ) {
     if let Some((folder_name, _)) = confirm_delete.clone() {
         let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
@@ -55,6 +56,9 @@ pub fn handle_delete_confirmation(
                             // 检查文件夹是否已成功删除
                             if !full_path.exists() {
                                 *status = Some(format!("文件夹 {} 已成功删除", folder_name));
+                                println!("文件夹 {} 已成功删除", folder_name);
+                                // 从 folder_data 中移除对应项目
+                                folder_data.retain(|(name, _)| name != &folder_name);
                             } else {
                                 *status = Some(format!("文件夹 {} 删除失败", folder_name));
                             }
