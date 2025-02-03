@@ -7,7 +7,7 @@ use crate::move_module; // 导入移动模块
 use crate::open;
 use crate::scanner;
 use crate::utils;
-use crate::yaml_loader::{FolderDescriptions, load_folder_descriptions};
+use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
 use std::sync::mpsc::{Receiver, Sender};
@@ -26,8 +26,11 @@ pub struct AppDataCleaner {
     ignored_folders: HashSet<String>,     // 忽略文件夹集合
     move_module: move_module::MoveModule, // 移动模块实例
     folder_descriptions: Option<FolderDescriptions>,
-    yaml_error_logged: bool, // 新增字段，用于标记是否已经记录过错误
-    status: Option<String>,  // 添加 status 字段
+    yaml_error_logged: bool,        // 新增字段，用于标记是否已经记录过错误
+    status: Option<String>,         // 添加 status 字段
+    sort_criterion: Option<String>, // 新增字段，排序标准 "name" 或 "size"
+    sort_order: Option<String>,     // 新增字段，排序顺序 "asc" 或 "desc"
+    total_size: u64,                // 新增字段，总大小
 }
 
 impl Default for AppDataCleaner {
@@ -47,9 +50,11 @@ impl Default for AppDataCleaner {
             ignored_folders: ignore::load_ignored_folders(),
             move_module: Default::default(),
             folder_descriptions: None,
-            yaml_error_logged: false, // 初始时假定未记录过错误
-            //status: None,             // 初始化为 None
+            yaml_error_logged: false,           // 初始时假定未记录过错误
             status: Some("未扫描".to_string()), // 初始化为 "未扫描"
+            sort_criterion: None,               // 初始化为 None
+            sort_order: None,                   // 初始化为 None
+            total_size: 0,                      // 初始化为 0
         }
     }
 }
@@ -83,7 +88,8 @@ impl eframe::App for AppDataCleaner {
 
         // 加载描述文件
         if self.folder_descriptions.is_none() {
-            self.folder_descriptions = load_folder_descriptions("folders_description.yaml", &mut self.yaml_error_logged);
+            self.folder_descriptions =
+                load_folder_descriptions("folders_description.yaml", &mut self.yaml_error_logged);
         }
 
         if self.is_logging_enabled != self.previous_logging_state {
@@ -97,7 +103,13 @@ impl eframe::App for AppDataCleaner {
         }
 
         // 删除确认弹窗逻辑
-        confirmation::handle_delete_confirmation(ctx, &mut self.confirm_delete, &self.selected_appdata_folder, &mut self.status, &mut self.folder_data); // 传递 folder_data
+        confirmation::handle_delete_confirmation(
+            ctx,
+            &mut self.confirm_delete,
+            &self.selected_appdata_folder,
+            &mut self.status,
+            &mut self.folder_data,
+        ); // 传递 folder_data
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
@@ -152,6 +164,12 @@ impl eframe::App for AppDataCleaner {
                 ui.label(status);
             }
 
+            // 计算总大小
+            self.total_size = self.folder_data.iter().map(|(_, size)| size).sum();
+
+            // 显示总大小
+            ui.label(format!("总大小: {}", utils::format_size(self.total_size)));
+
             ScrollArea::vertical().show(ui, |ui| {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
                     ui.label("文件夹");
@@ -159,6 +177,44 @@ impl eframe::App for AppDataCleaner {
                     ui.label("描述");
                     ui.label("操作");
                     ui.end_row();
+
+                    // 添加排序按钮
+                    ui.menu_button("排序", |ui| {
+                        if ui.button("按名称排序").clicked() {
+                            self.sort_criterion = Some("name".to_string());
+                            self.sort_order = Some("asc".to_string());
+                        }
+                        if ui.button("按大小排序").clicked() {
+                            self.sort_criterion = Some("size".to_string());
+                            self.sort_order = Some("asc".to_string());
+                        }
+                        if ui.button("名称倒序").clicked() {
+                            self.sort_criterion = Some("name".to_string());
+                            self.sort_order = Some("desc".to_string());
+                        }
+                        if ui.button("大小倒序").clicked() {
+                            self.sort_criterion = Some("size".to_string());
+                            self.sort_order = Some("desc".to_string());
+                        }
+                    });
+
+                    if let Some(criterion) = &self.sort_criterion {
+                        self.folder_data.sort_by(|a, b| {
+                            if *criterion == "name" {
+                                if self.sort_order == Some("asc".to_string()) {
+                                    a.0.cmp(&b.0)
+                                } else {
+                                    b.0.cmp(&a.0)
+                                }
+                            } else {
+                                if self.sort_order == Some("asc".to_string()) {
+                                    a.1.cmp(&b.1)
+                                } else {
+                                    b.1.cmp(&a.1)
+                                }
+                            }
+                        });
+                    }
 
                     for (folder, size) in &self.folder_data {
                         if self.ignored_folders.contains(folder) {
