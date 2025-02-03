@@ -164,6 +164,26 @@ impl eframe::App for AppDataCleaner {
                 ui.label(status);
             }
 
+            // 添加排序按钮
+            ui.menu_button("排序", |ui| {
+                if ui.button("名称正序").clicked() {
+                    self.sort_criterion = Some("name".to_string());
+                    self.sort_order = Some("asc".to_string());
+                }
+                if ui.button("大小正序").clicked() {
+                    self.sort_criterion = Some("size".to_string());
+                    self.sort_order = Some("asc".to_string());
+                }
+                if ui.button("名称倒序").clicked() {
+                    self.sort_criterion = Some("name".to_string());
+                    self.sort_order = Some("desc".to_string());
+                }
+                if ui.button("大小倒序").clicked() {
+                    self.sort_criterion = Some("size".to_string());
+                    self.sort_order = Some("desc".to_string());
+                }
+            });
+
             // 计算总大小
             self.total_size = self.folder_data.iter().map(|(_, size)| size).sum();
 
@@ -177,26 +197,6 @@ impl eframe::App for AppDataCleaner {
                     ui.label("描述");
                     ui.label("操作");
                     ui.end_row();
-
-                    // 添加排序按钮
-                    ui.menu_button("排序", |ui| {
-                        if ui.button("按名称排序").clicked() {
-                            self.sort_criterion = Some("name".to_string());
-                            self.sort_order = Some("asc".to_string());
-                        }
-                        if ui.button("按大小排序").clicked() {
-                            self.sort_criterion = Some("size".to_string());
-                            self.sort_order = Some("asc".to_string());
-                        }
-                        if ui.button("名称倒序").clicked() {
-                            self.sort_criterion = Some("name".to_string());
-                            self.sort_order = Some("desc".to_string());
-                        }
-                        if ui.button("大小倒序").clicked() {
-                            self.sort_criterion = Some("size".to_string());
-                            self.sort_order = Some("desc".to_string());
-                        }
-                    });
 
                     if let Some(criterion) = &self.sort_criterion {
                         self.folder_data.sort_by(|a, b| {
