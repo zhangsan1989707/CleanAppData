@@ -49,5 +49,7 @@ jobs:
         draft: false
         make_latest: true
         files: |
-          target\release\AppDataCleaner.exe
-          target\release\AppDataCleaner.pdb
+          target/release/AppDataCleaner.exe
+          target/release/AppDataCleaner.pdb
+      env:
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}

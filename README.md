@@ -46,6 +46,10 @@
 - 双击运行
 - 点击“立即扫描”,软件会自动扫描 Appdata 文件夹，并显示扫描结果。
 - 自行选择“删除”或“移动”（暂未实现）
+#### 关于文件夹描述
+程序默认不带任何规则，请自行下载规则并放到软件根目录，后续出模板
+
+这是[作者本人维护的描述规则](https://github.com/TC999/TC999-subscription)
 
 ### 从源码编译
 #### 本地编译
@@ -70,14 +74,15 @@ cargo build --release
 #### 或直接运行 CI 构建
 
 ## 代码结构说明
-- `src`: 代码目录
+- `src`: 程序源代码目录
 - `assets`: 资源文件目录(注：字体文件不可删除，否则运行会显示方块！)
 - `Cargo.toml`: 依赖管理文件
 
 ## ✔ 待办
 - [x] 白名单模块（防止误删，保护重要数据
+- [x] 文件夹描述
 - [ ] 移动文件夹
-- [x] 打开文件夹（已成功，测试中，[103b1](https://github.com/TC999/AppDataCleaner/releases/tag/v1.0.3-b1)
+- [x] 打开文件夹（已成功
 - [ ] 多国语言支持（暂时不考虑，反正鬼佬也不用（不是
 - [ ] 优化界面
 - [ ] 优化代码
@@ -109,7 +114,7 @@ cargo build --release
 [issues-image]: https://img.shields.io/github/issues/TC999/AppDataCleaner?style=flat-square&logo=github&label=议题
 
 [pulls-url]: https://github.com/TC999/AppDataCleaner/pulls "拉取请求"
-[pulls-image]: https://custom-icon-badges.demolab.com/github/issues-pr-raw/TC999/AppDataCleaner?style=flat&logo=git-pull-request&%3Fcolor%3Dgreen&label=%E6%8B%89%E5%8F%96%E8%AF%B7%E6%B1%82
+[pulls-image]: https://img.shields.io/github/issues-pr-raw/TC999/AppDataCleaner?style=flat&logo=github&%3Fcolor%3Dgreen&label=%E6%8B%89%E5%8F%96%E8%AF%B7%E6%B1%82
 
 [stars-url]: https://github.com/TC999/AppDataCleaner/stargazers "星标"
 [stars-image]: https://img.shields.io/github/stars/TC999/AppDataCleaner?style=flat-square&logo=github&label=星标

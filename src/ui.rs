@@ -7,7 +7,7 @@ use crate::move_module; // 导入移动模块
 use crate::open;
 use crate::scanner;
 use crate::utils;
-use crate::yaml_loader::FolderDescriptions;
+use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
 use std::sync::mpsc::{Receiver, Sender};
@@ -26,7 +26,11 @@ pub struct AppDataCleaner {
     ignored_folders: HashSet<String>,     // 忽略文件夹集合
     move_module: move_module::MoveModule, // 移动模块实例
     folder_descriptions: Option<FolderDescriptions>,
-    yaml_error_logged: bool, // 新增字段，用于标记是否已经记录过错误
+    yaml_error_logged: bool,        // 新增字段，用于标记是否已经记录过错误
+    status: Option<String>,         // 添加 status 字段
+    sort_criterion: Option<String>, // 新增字段，排序标准 "name" 或 "size"
+    sort_order: Option<String>,     // 新增字段，排序顺序 "asc" 或 "desc"
+    total_size: u64,                // 新增字段，总大小
 }
 
 impl Default for AppDataCleaner {
@@ -46,7 +50,11 @@ impl Default for AppDataCleaner {
             ignored_folders: ignore::load_ignored_folders(),
             move_module: Default::default(),
             folder_descriptions: None,
-            yaml_error_logged: false, // 初始时假定未记录过错误
+            yaml_error_logged: false,           // 初始时假定未记录过错误
+            status: Some("未扫描".to_string()), // 初始化为 "未扫描"
+            sort_criterion: None,               // 初始化为 None
+            sort_order: None,                   // 初始化为 None
+            total_size: 0,                      // 初始化为 0
         }
     }
 }
@@ -80,16 +88,8 @@ impl eframe::App for AppDataCleaner {
 
         // 加载描述文件
         if self.folder_descriptions.is_none() {
-            match FolderDescriptions::load_from_yaml("folders_description.yaml") {
-                Ok(descriptions) => self.folder_descriptions = Some(descriptions),
-                Err(e) => {
-                    if !self.yaml_error_logged {
-                        eprintln!("加载 YAML 文件失败: {}", e);
-                        logger::log_error(&format!("加载 YAML 文件失败: {}", e));
-                        self.yaml_error_logged = true; // 记录错误，避免重复输出
-                    }
-                }
-            }
+            self.folder_descriptions =
+                load_folder_descriptions("folders_description.yaml", &mut self.yaml_error_logged);
         }
 
         if self.is_logging_enabled != self.previous_logging_state {
@@ -103,28 +103,13 @@ impl eframe::App for AppDataCleaner {
         }
 
         // 删除确认弹窗逻辑
-        if let Some((folder_name, _)) = &self.confirm_delete {
-            let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
-            logger::log_info(&message);
-            if let Some(confirm) = confirmation::show_confirmation(ctx, &message) {
-                if confirm {
-                    if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
-                        let full_path = base_path.join(folder_name);
-                        if let Err(err) = delete::delete_folder(&full_path) {
-                            eprintln!("Error: {}", err);
-                            logger::log_error(&format!("Error: {}", err));
-                        }
-                    } else {
-                        eprintln!("无法获取 {} 文件夹路径", self.selected_appdata_folder);
-                        logger::log_error(&format!(
-                            "无法获取 {} 文件夹路径",
-                            self.selected_appdata_folder
-                        ));
-                    }
-                }
-                self.confirm_delete = None; // 清除状态
-            }
-        }
+        confirmation::handle_delete_confirmation(
+            ctx,
+            &mut self.confirm_delete,
+            &self.selected_appdata_folder,
+            &mut self.status,
+            &mut self.folder_data,
+        ); // 传递 folder_data
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
@@ -142,6 +127,7 @@ impl eframe::App for AppDataCleaner {
                         self.selected_appdata_folder = folder.to_string();
                         self.folder_data.clear();
                         self.is_scanning = false;
+                        self.status = Some("未扫描".to_string()); // 更新状态为 "未扫描"
                         ui.close_menu();
                     }
                 }
@@ -153,6 +139,7 @@ impl eframe::App for AppDataCleaner {
             if ui.button("立即扫描").clicked() && !self.is_scanning {
                 self.is_scanning = true;
                 self.folder_data.clear();
+                self.status = Some("扫描中...".to_string()); // 更新状态为 "扫描中..."
 
                 let tx = self.tx.clone().unwrap();
                 let folder_type = self.selected_appdata_folder.clone();
@@ -162,15 +149,46 @@ impl eframe::App for AppDataCleaner {
 
             if let Some(rx) = &self.rx {
                 while let Ok((folder, size)) = rx.try_recv() {
-                    self.folder_data.push((folder, size));
+                    // 检查是否接收到扫描完成标志
+                    if folder == "__SCAN_COMPLETE__" {
+                        self.is_scanning = false;
+                        self.status = Some("扫描完成".to_string()); // 更新状态为 "扫描完成"
+                    } else {
+                        self.folder_data.push((folder, size));
+                    }
                 }
             }
 
-            if self.is_scanning {
-                ui.label("扫描中...");
-            } else {
-                ui.label("扫描完成");
+            // 显示状态
+            if let Some(status) = &self.status {
+                ui.label(status);
             }
+
+            // 添加排序按钮
+            ui.menu_button("排序", |ui| {
+                if ui.button("名称正序").clicked() {
+                    self.sort_criterion = Some("name".to_string());
+                    self.sort_order = Some("asc".to_string());
+                }
+                if ui.button("大小正序").clicked() {
+                    self.sort_criterion = Some("size".to_string());
+                    self.sort_order = Some("asc".to_string());
+                }
+                if ui.button("名称倒序").clicked() {
+                    self.sort_criterion = Some("name".to_string());
+                    self.sort_order = Some("desc".to_string());
+                }
+                if ui.button("大小倒序").clicked() {
+                    self.sort_criterion = Some("size".to_string());
+                    self.sort_order = Some("desc".to_string());
+                }
+            });
+
+            // 计算总大小
+            self.total_size = self.folder_data.iter().map(|(_, size)| size).sum();
+
+            // 显示总大小
+            ui.label(format!("总大小: {}", utils::format_size(self.total_size)));
 
             ScrollArea::vertical().show(ui, |ui| {
                 Grid::new("folders_table").striped(true).show(ui, |ui| {
@@ -179,6 +197,24 @@ impl eframe::App for AppDataCleaner {
                     ui.label("描述");
                     ui.label("操作");
                     ui.end_row();
+
+                    if let Some(criterion) = &self.sort_criterion {
+                        self.folder_data.sort_by(|a, b| {
+                            if *criterion == "name" {
+                                if self.sort_order == Some("asc".to_string()) {
+                                    a.0.cmp(&b.0)
+                                } else {
+                                    b.0.cmp(&a.0)
+                                }
+                            } else {
+                                if self.sort_order == Some("asc".to_string()) {
+                                    a.1.cmp(&b.1)
+                                } else {
+                                    b.1.cmp(&a.1)
+                                }
+                            }
+                        });
+                    }
 
                     for (folder, size) in &self.folder_data {
                         if self.ignored_folders.contains(folder) {
@@ -206,6 +242,7 @@ impl eframe::App for AppDataCleaner {
                         if !self.ignored_folders.contains(folder) {
                             if ui.button("彻底删除").clicked() {
                                 self.confirm_delete = Some((folder.clone(), false));
+                                self.status = None; // 每次点击"彻底删除"时清除状态
                             }
                             if ui.button("移动").clicked() {
                                 self.move_module.show_window = true;

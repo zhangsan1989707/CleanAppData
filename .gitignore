@@ -28,3 +28,6 @@ Cargo.lock
 *.log
 adcignore.txt
 /rules
+
+# yaml 规则文件
+*.yaml
