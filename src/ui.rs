@@ -1,6 +1,7 @@
 use crate::about;
 use crate::ai_config::{AIConfig, AIClient};
 use crate::confirmation;
+use crate::delete;
 use crate::ignore;
 use crate::logger;
 use crate::move_module;
