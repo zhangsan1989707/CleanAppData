@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
+use crate::logger;
 
 // 为 AIConfig 添加 Clone trait
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -80,17 +81,9 @@ impl AIConfig {
         Self::default()
     }
 
-    // 添加获取配置文件路径的辅助函数
+    // 简化路径处理，直接使用固定路径
     pub fn get_config_path() -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
-        let exe_path = std::env::current_exe()?;
-        let project_dir = exe_path
-            .parent()
-            .unwrap() // debug 目录
-            .parent()
-            .unwrap() // target 目录
-            .parent()
-            .unwrap(); // 项目根目录
-        Ok(project_dir.join("folders_description.yaml"))
+        Ok(std::path::PathBuf::from("folders_description.yaml"))
     }
 
     pub fn load_from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
@@ -100,17 +93,14 @@ impl AIConfig {
     }
 
     pub fn save_to_file(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // 确保目标目录存在
-        if let Some(parent) = std::path::Path::new(path).parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
         // 序列化配置
         let content = serde_yaml::to_string(self)?;
 
         // 写入文件
         std::fs::write(path, content)?;
-
+        
+        logger::log_info(&format!("配置文件已保存到: {}", path));
+        
         Ok(())
     }
 
@@ -132,8 +122,9 @@ impl AIConfig {
             config.model.model = model;
         }
 
-        // 直接在当前目录创建配置文件
-        config.save_to_file(".\\folders_description.yaml")?;
+        // 获取正确的配置文件路径
+        let config_path = Self::get_config_path()?;
+        config.save_to_file(config_path.to_str().unwrap())?;
 
         Ok(())
     }
