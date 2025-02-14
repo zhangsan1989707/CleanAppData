@@ -158,6 +158,48 @@ impl eframe::App for AppDataCleaner {
                     self.show_ai_config_window = true;
                     ui.close_menu();
                 }
+                if ui.button("一键生成所有描述").clicked() {
+                    // 确保已经初始化了 AI 客户端
+                    if self.ai_client.is_none() {
+                        self.ai_client = Some(AIClient::new(self.ai_config.clone()));
+                    }
+
+                    // 创建一个新的运行时来处理异步操作
+                    if let Some(client) = &self.ai_client {
+                        let folder_data = self.folder_data.clone();
+                        let selected_folder = self.selected_appdata_folder.clone();
+                        
+                        tokio::runtime::Runtime::new()
+                            .unwrap()
+                            .block_on(async {
+                                for (folder, _) in folder_data {
+                                    match client.get_folder_description(&selected_folder, &folder).await {
+                                        Ok(description) => {
+                                            // 根据文件夹类型更新相应的 HashMap
+                                            match selected_folder.as_str() {
+                                                "Local" => self.ai_config.Local.insert(folder.clone(), description),
+                                                "LocalLow" => self.ai_config.LocalLow.insert(folder.clone(), description),
+                                                "Roaming" => self.ai_config.Roaming.insert(folder.clone(), description),
+                                                _ => None,
+                                            };
+                                        }
+                                        Err(e) => {
+                                            logger::log_error(&format!("生成描述失败 {}: {}", folder, e));
+                                        }
+                                    }
+                                }
+                                
+                                // 保存更新后的配置
+                                if let Ok(config_path) = AIConfig::get_config_path() {
+                                    if let Err(e) = self.ai_config.save_to_file(config_path.to_str().unwrap()) {
+                                        logger::log_error(&format!("保存配置失败: {}", e));
+                                    }
+                                }
+                            });
+                        
+                        self.status = Some("所有描述生成完成".to_string());
+                    }
+                }
             });
 
             ui.separator();
@@ -311,6 +353,46 @@ impl eframe::App for AppDataCleaner {
                                 if let Err(err) = open::open_folder(&full_path) {
                                     logger::log_error(&format!("无法打开文件夹: {}", err));
                                 }
+                            }
+                        }
+                        if ui.button("生成描述").clicked() {
+                            // 确保已经初始化了 AI 客户端
+                            if self.ai_client.is_none() {
+                                self.ai_client = Some(AIClient::new(self.ai_config.clone()));
+                            }
+
+                            if let Some(client) = &self.ai_client {
+                                let folder_name = folder.clone();
+                                let selected_folder = self.selected_appdata_folder.clone();
+                                
+                                tokio::runtime::Runtime::new()
+                                    .unwrap()
+                                    .block_on(async {
+                                        match client.get_folder_description(&selected_folder, &folder_name).await {
+                                            Ok(description) => {
+                                                // 根据文件夹类型更新相应的 HashMap
+                                                match selected_folder.as_str() {
+                                                    "Local" => self.ai_config.Local.insert(folder_name.clone(), description),
+                                                    "LocalLow" => self.ai_config.LocalLow.insert(folder_name.clone(), description),
+                                                    "Roaming" => self.ai_config.Roaming.insert(folder_name.clone(), description),
+                                                    _ => None,
+                                                };
+                                                
+                                                // 保存更新后的配置
+                                                if let Ok(config_path) = AIConfig::get_config_path() {
+                                                    if let Err(e) = self.ai_config.save_to_file(config_path.to_str().unwrap()) {
+                                                        logger::log_error(&format!("保存配置失败: {}", e));
+                                                    }
+                                                }
+                                                
+                                                self.status = Some(format!("已生成 {} 的描述", folder_name));
+                                            }
+                                            Err(e) => {
+                                                logger::log_error(&format!("生成描述失败 {}: {}", folder_name, e));
+                                                self.status = Some(format!("生成描述失败: {}", e));
+                                            }
+                                        }
+                                    });
                             }
                         }
                         ui.end_row();
