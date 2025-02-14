@@ -16,6 +16,10 @@ pub struct AppDataCleaner {
     is_scanning: bool,
     current_folder: Option<String>,
     folder_data: Vec<(String, u64)>,
+    show_ai_config_window: bool,        // 新增字段,用于ai配置
+    ai_url: String,        // 新增字段,用于ai配置
+    ai_api_key: String,        // 新增字段,用于ai配置
+    ai_model: String,        // 新增字段,用于ai配置
     show_about_window: bool,                // 确保字段存在
     confirm_delete: Option<(String, bool)>, // 保存要确认删除的文件夹状态
     selected_appdata_folder: String,        // 新增字段
@@ -40,6 +44,10 @@ impl Default for AppDataCleaner {
             is_scanning: false,
             current_folder: None,
             folder_data: vec![],
+            show_ai_config_window: false,                       // 默认值
+            ai_url: String::new(),
+            ai_api_key: String::new(),
+            ai_model: String::new(),
             show_about_window: false,                       // 默认值
             confirm_delete: None,                           // 初始化为 None
             selected_appdata_folder: "Roaming".to_string(), // 默认值为 Roaming
@@ -113,10 +121,16 @@ impl eframe::App for AppDataCleaner {
 
         // 顶部菜单
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            if ui.button("关于").clicked() {
-                self.show_about_window = true; // 打开关于窗口
-                ui.close_menu();
-            }
+            ui.horizontal(|ui| {  // 使用 horizontal 布局让按钮并排
+                if ui.button("关于").clicked() {
+                    self.show_about_window = true;
+                    ui.close_menu();
+                }
+                if ui.button("AI配置").clicked() {
+                    self.show_ai_config_window = true;
+                    ui.close_menu();
+                }
+            });
 
             ui.separator();
             ui.checkbox(&mut self.is_logging_enabled, "启用日志");
@@ -280,6 +294,65 @@ impl eframe::App for AppDataCleaner {
         // 关于窗口
         if self.show_about_window {
             about::show_about_window(ctx, &mut self.show_about_window);
+        }
+
+        // 新增：AI配置窗口
+        if self.show_ai_config_window {
+            egui::Window::new("AI配置")
+                .resizable(true)
+                .collapsible(true)
+                .show(ctx, |ui| {
+                    ui.heading("AI配置生成器");
+
+                    // URL 配置
+                    ui.horizontal(|ui| {
+                        ui.label("API地址：");
+                        ui.add(egui::TextEdit::singleline(&mut self.ai_url)
+                            .hint_text("输入API地址，例如：https://api.openai.com/v1"));
+                    });
+
+                    // API Key 配置
+                    ui.horizontal(|ui| {
+                        ui.label("API密钥：");
+                        // 使用 password 模式来隐藏 API key
+                        ui.add(egui::TextEdit::singleline(&mut self.ai_api_key)
+                            .password(true)
+                            .hint_text("输入API密钥"));
+                    });
+
+                    // Model 配置
+                    ui.horizontal(|ui| {
+                        ui.label("模型名称：");
+                        ui.add(egui::TextEdit::singleline(&mut self.ai_model)
+                            .hint_text("输入模型名称，例如：gpt-3.5-turbo"));
+                    });
+
+                    // 添加保存和测试按钮
+                    ui.horizontal(|ui| {
+                        if ui.button("保存配置").clicked() {
+                            // TODO: 实现配置保存逻辑
+                            logger::log_info("AI配置已保存");
+                        }
+
+                        if ui.button("测试连接").clicked() {
+                            // TODO: 实现API连接测试逻辑
+                            logger::log_info("正在测试AI连接...");
+                        }
+
+                        if ui.button("关闭").clicked() {
+                            self.show_ai_config_window = false;
+                        }
+                    });
+
+                    // 显示配置状态
+                    ui.separator();
+                    ui.label("配置状态：");
+                    if self.ai_url.is_empty() || self.ai_api_key.is_empty() || self.ai_model.is_empty() {
+                        ui.colored_label(egui::Color32::RED, "⚠ 配置不完整");
+                    } else {
+                        ui.colored_label(egui::Color32::GREEN, "✓ 配置已完成");
+                    }
+                });
         }
 
         // 显示移动窗口
