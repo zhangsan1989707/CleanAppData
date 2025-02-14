@@ -1,4 +1,5 @@
 use crate::about;
+use crate::ai_config::{AIConfig, AIClient};  // 添加 AIClient
 use crate::confirmation;
 use crate::delete;
 use crate::ignore;
@@ -35,34 +36,61 @@ pub struct AppDataCleaner {
     sort_criterion: Option<String>, // 新增字段，排序标准 "name" 或 "size"
     sort_order: Option<String>,     // 新增字段，排序顺序 "asc" 或 "desc"
     total_size: u64,                // 新增字段，总大小
+    ai_config: AIConfig,
+    ai_retry_attempts: u32,
+    ai_retry_delay: u32,
+    show_prompt_editor: bool,
+    ai_client: Option<AIClient>, // 在 AppDataCleaner 结构体中添加 ai_client 字段
 }
 
 impl Default for AppDataCleaner {
     fn default() -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
+        
+        // 尝试加载配置文件
+        let ai_config = match AIConfig::load_from_file("folders_description.yaml") {
+            Ok(config) => {
+                logger::log_info("已成功加载AI配置文件");
+                config
+            }
+            Err(_) => {
+                logger::log_info("未找到配置文件，使用默认配置");
+                AIConfig::default()
+            }
+        };
+
+        // 先保存重试配置的值
+        let attempts = ai_config.retry.attempts;
+        let delay = ai_config.retry.delay;
+
         Self {
             is_scanning: false,
             current_folder: None,
             folder_data: vec![],
-            show_ai_config_window: false,                       // 默认值
+            show_ai_config_window: false,
             ai_url: String::new(),
             ai_api_key: String::new(),
             ai_model: String::new(),
-            show_about_window: false,                       // 默认值
-            confirm_delete: None,                           // 初始化为 None
-            selected_appdata_folder: "Roaming".to_string(), // 默认值为 Roaming
+            show_about_window: false,
+            confirm_delete: None,
+            selected_appdata_folder: "Roaming".to_string(),
             tx: Some(tx),
             rx: Some(rx),
-            is_logging_enabled: false,     // 默认禁用日志
-            previous_logging_state: false, // 初始时假定日志系统未启用
+            is_logging_enabled: false,
+            previous_logging_state: false,
             ignored_folders: ignore::load_ignored_folders(),
             move_module: Default::default(),
             folder_descriptions: None,
-            yaml_error_logged: false,           // 初始时假定未记录过错误
-            status: Some("未扫描".to_string()), // 初始化为 "未扫描"
-            sort_criterion: None,               // 初始化为 None
-            sort_order: None,                   // 初始化为 None
-            total_size: 0,                      // 初始化为 0
+            yaml_error_logged: false,
+            status: Some("未扫描".to_string()),
+            sort_criterion: None,
+            sort_order: None,
+            total_size: 0,
+            ai_config,                    // 移动 ai_config
+            ai_retry_attempts: attempts,  // 使用保存的值
+            ai_retry_delay: delay,        // 使用保存的值
+            show_prompt_editor: false,
+            ai_client: None, // 初始化 ai_client 字段
         }
     }
 }
@@ -301,57 +329,184 @@ impl eframe::App for AppDataCleaner {
             egui::Window::new("AI配置")
                 .resizable(true)
                 .collapsible(true)
+                .min_width(400.0)  // 添加最小宽度
+                .min_height(500.0) // 添加最小高度
                 .show(ctx, |ui| {
                     ui.heading("AI配置生成器");
 
-                    // URL 配置
-                    ui.horizontal(|ui| {
-                        ui.label("API地址：");
-                        ui.add(egui::TextEdit::singleline(&mut self.ai_url)
-                            .hint_text("输入API地址，例如：https://api.openai.com/v1"));
+                    // 基本配置
+                    ui.group(|ui| {  // 将基本配置也放入组中
+                        ui.heading("基本设置");
+                        ui.horizontal(|ui| {
+                            ui.label("配置名称：");
+                            ui.add(egui::TextEdit::singleline(&mut self.ai_config.name)
+                                .hint_text("输入配置名称")  // 添加提示文本
+                                .desired_width(200.0));     // 设置输入框宽度
+                        });
+                    });
+                    
+                    // API配置组
+                    ui.group(|ui| {
+                        ui.heading("API设置");
+                        ui.horizontal(|ui| {
+                            ui.label("API地址：");
+                            ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.url)
+                                .hint_text("输入 API 地址，如 https://api.openai.com/v1")
+                                .desired_width(250.0));
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("API密钥：");
+                            ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.api_key)
+                                .password(true)
+                                .hint_text("输入你的API密钥")
+                                .desired_width(250.0));
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("模型名称：");
+                            ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.model)
+                                .hint_text("输入模型名称，如 gpt-3.5-turbo")
+                                .desired_width(250.0));
+                        });
                     });
 
-                    // API Key 配置
-                    ui.horizontal(|ui| {
-                        ui.label("API密钥：");
-                        // 使用 password 模式来隐藏 API key
-                        ui.add(egui::TextEdit::singleline(&mut self.ai_api_key)
-                            .password(true)
-                            .hint_text("输入API密钥"));
+                    // 重试配置组
+                    ui.group(|ui| {
+                        ui.heading("重试设置");
+                        ui.horizontal(|ui| {
+                            ui.label("重试次数：");
+                            ui.add(egui::DragValue::new(&mut self.ai_config.retry.attempts)
+                                .range(1..=10)  // 使用 range 替代 clamp_range
+                                .speed(1)
+                                .prefix("次数: "));
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("重试延迟：");
+                            ui.add(egui::DragValue::new(&mut self.ai_config.retry.delay)
+                                .range(1..=60)  // 使用 range 替代 clamp_range
+                                .speed(1)
+                                .suffix(" 秒"));
+                        });
                     });
 
-                    // Model 配置
-                    ui.horizontal(|ui| {
-                        ui.label("模型名称：");
-                        ui.add(egui::TextEdit::singleline(&mut self.ai_model)
-                            .hint_text("输入模型名称，例如：gpt-3.5-turbo"));
+                    // Prompt编辑器按钮
+                    ui.group(|ui| {
+                        ui.heading("Prompt设置");
+                        if ui.button("编辑Prompt模板").clicked() {
+                            self.show_prompt_editor = true;
+                        }
+                        // 显示当前prompt的预览
+                        ui.label("当前模板预览：");
+                        ui.add(egui::TextEdit::multiline(&mut self.ai_config.model.prompt.clone())
+                            .desired_width(f32::INFINITY)
+                            .desired_rows(3)
+                            .interactive(false));  // 使用 interactive(false) 替代 read_only
                     });
 
-                    // 添加保存和测试按钮
+                    ui.add_space(10.0);  // 添加一些间距
+
+                    // 按钮组
                     ui.horizontal(|ui| {
                         if ui.button("保存配置").clicked() {
-                            // TODO: 实现配置保存逻辑
-                            logger::log_info("AI配置已保存");
+                            match self.ai_config.validate() {
+                                Ok(_) => {
+                                    match AIConfig::get_config_path() {
+                                        Ok(config_path) => {
+                                            match self.ai_config.save_to_file(config_path.to_str().unwrap()) {
+                                                Ok(_) => {
+                                                    logger::log_info(&format!(
+                                                        "AI配置已保存到: {}",
+                                                        config_path.display()
+                                                    ));
+                                                    self.status = Some("配置已保存".to_string());
+                                                }
+                                                Err(err) => {
+                                                    logger::log_error(&format!(
+                                                        "保存配置失败: {}, 路径: {}", 
+                                                        err, 
+                                                        config_path.display()
+                                                    ));
+                                                    self.status = Some("保存配置失败".to_string());
+                                                }
+                                            }
+                                        }
+                                        Err(err) => {
+                                            logger::log_error(&format!("获取配置路径失败: {}", err));
+                                            self.status = Some("保存配置失败".to_string());
+                                        }
+                                    }
+                                }
+                                Err(err) => {
+                                    logger::log_error(&format!("配置验证失败: {}", err));
+                                    self.status = Some(format!("错误: {}", err));
+                                }
+                            }
                         }
 
                         if ui.button("测试连接").clicked() {
-                            // TODO: 实现API连接测试逻辑
-                            logger::log_info("正在测试AI连接...");
+                            let client = AIClient::new(self.ai_config.clone());
+                            
+                            tokio::runtime::Runtime::new()
+                                .unwrap()
+                                .block_on(async {
+                                    match client.test_connection().await {
+                                        Ok(_) => {
+                                            logger::log_info("AI连接测试成功");
+                                            self.status = Some("AI连接测试成功".to_string());
+                                        }
+                                        Err(err) => {
+                                            logger::log_error(&format!("AI连接测试失败: {}", err));
+                                            self.status = Some(format!("AI连接测试失败: {}", err));
+                                        }
+                                    }
+                                });
+                        }
+
+                        if ui.button("重置默认值").clicked() {
+                            self.ai_config = AIConfig::default();
                         }
 
                         if ui.button("关闭").clicked() {
                             self.show_ai_config_window = false;
                         }
                     });
+                });
+        }
 
-                    // 显示配置状态
-                    ui.separator();
-                    ui.label("配置状态：");
-                    if self.ai_url.is_empty() || self.ai_api_key.is_empty() || self.ai_model.is_empty() {
-                        ui.colored_label(egui::Color32::RED, "⚠ 配置不完整");
-                    } else {
-                        ui.colored_label(egui::Color32::GREEN, "✓ 配置已完成");
-                    }
+        // Prompt编辑器窗口也添加边界
+        if self.show_prompt_editor {
+            egui::Window::new("Prompt模板编辑器")
+                .resizable(true)
+                .min_width(600.0)
+                .min_height(400.0)
+                .show(ctx, |ui| {
+                    ui.label("编辑Prompt模板：");
+                    ui.add_space(5.0);
+                    
+                    let mut prompt = self.ai_config.model.prompt.clone();
+                    ui.add(
+                        egui::TextEdit::multiline(&mut prompt)
+                            .desired_width(f32::INFINITY)
+                            .desired_rows(20)
+                            .font(egui::TextStyle::Monospace) // 使用等宽字体
+                    );
+                    self.ai_config.model.prompt = prompt;
+
+                    ui.add_space(10.0);
+                    ui.horizontal(|ui| {
+                        if ui.button("保存").clicked() {
+                            self.show_prompt_editor = false;
+                        }
+                        if ui.button("重置默认值").clicked() {
+                            self.ai_config.model.prompt = AIConfig::default().model.prompt;
+                        }
+                        if ui.button("取消").clicked() {
+                            self.show_prompt_editor = false;
+                            self.ai_config.model.prompt = AIConfig::default().model.prompt;
+                        }
+                    });
                 });
         }
 
