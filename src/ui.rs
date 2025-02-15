@@ -1,7 +1,6 @@
 use crate::about;
-use crate::ai_config::{AIConfig, AIClient};
+use crate::ai_config::{AIConfig, AIHandler};
 use crate::confirmation;
-use crate::delete;
 use crate::ignore;
 use crate::logger;
 use crate::move_module;
@@ -11,38 +10,47 @@ use crate::utils;
 use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};
 
 pub struct AppDataCleaner {
+    // 基础字段
     is_scanning: bool,
     current_folder: Option<String>,
     folder_data: Vec<(String, u64)>,
-    show_ai_config_window: bool,        // 新增字段,用于ai配置
-    ai_url: String,        // 新增字段,用于ai配置
-    ai_api_key: String,        // 新增字段,用于ai配置
-    ai_model: String,        // 新增字段,用于ai配置
-    show_about_window: bool,                // 确保字段存在
-    confirm_delete: Option<(String, bool)>, // 保存要确认删除的文件夹状态
-    selected_appdata_folder: String,        // 新增字段
+    selected_appdata_folder: String,
     tx: Option<Sender<(String, u64)>>,
     rx: Option<Receiver<(String, u64)>>,
-    is_logging_enabled: bool,             // 控制日志是否启用
-    previous_logging_state: bool,         // 记录上一次日志启用状态
-    ignored_folders: HashSet<String>,     // 忽略文件夹集合
-    move_module: move_module::MoveModule, // 移动模块实例
+    total_size: u64,
+
+    // 界面状态字段
+    show_about_window: bool,
+    show_ai_config_window: bool,     // AI配置窗口显示状态
+    show_prompt_editor: bool,        // Prompt编辑器显示状态 
+    confirm_delete: Option<(String, bool)>,
+    status: Option<String>,          // 状态信息
+
+    // 日志相关字段
+    is_logging_enabled: bool,
+    previous_logging_state: bool,
+
+    // 排序相关字段 
+    sort_criterion: Option<String>,  // 排序标准:"name"或"size"
+    sort_order: Option<String>,      // 排序顺序:"asc"或"desc"
+
+    // 文件夹描述相关
     folder_descriptions: Option<FolderDescriptions>,
-    yaml_error_logged: bool,        // 新增字段，用于标记是否已经记录过错误
-    status: Option<String>,         // 添加 status 字段
-    sort_criterion: Option<String>, // 新增字段，排序标准 "name" 或 "size"
-    sort_order: Option<String>,     // 新增字段，排序顺序 "asc" 或 "desc"
-    total_size: u64,                // 新增字段，总大小
+    yaml_error_logged: bool,
+    ignored_folders: HashSet<String>,
+
+    // 移动模块
+    move_module: move_module::MoveModule,
+
+    // AI相关配置
     ai_config: AIConfig,
-    ai_retry_attempts: u32,
-    ai_retry_delay: u32,
-    show_prompt_editor: bool,
-    ai_client: Option<AIClient>, // 在 AppDataCleaner 结构体中添加 ai_client 字段
-    ai_tx: Option<Sender<(String, String, String)>>, // (folder_type, folder_name, description)
+    ai_tx: Option<Sender<(String, String, String)>>,
     ai_rx: Option<Receiver<(String, String, String)>>,
+    ai_handler: Arc<Mutex<AIHandler>>, // 使用 Arc<Mutex<>> 包装 AIHandler
 }
 
 impl Default for AppDataCleaner {
@@ -50,7 +58,7 @@ impl Default for AppDataCleaner {
         let (tx, rx) = std::sync::mpsc::channel();
         let (ai_tx, ai_rx) = std::sync::mpsc::channel();
         
-        // 尝试加载配置文件
+        // 加载AI配置
         let ai_config = match AIConfig::load_from_file("folders_description.yaml") {
             Ok(config) => {
                 logger::log_info("已成功加载AI配置文件");
@@ -62,38 +70,48 @@ impl Default for AppDataCleaner {
             }
         };
 
-        // 先保存重试配置的值
-        let attempts = ai_config.retry.attempts;
-        let delay = ai_config.retry.delay;
+        // 创建 AIHandler 并包装在 Arc<Mutex<>> 中
+        let ai_handler = Arc::new(Mutex::new(AIHandler::new(
+            ai_config.clone(),
+            Some(ai_tx.clone())
+        )));
 
         Self {
+            // 基础字段初始化
             is_scanning: false,
             current_folder: None,
             folder_data: vec![],
-            show_ai_config_window: false,
-            ai_url: String::new(),
-            ai_api_key: String::new(),
-            ai_model: String::new(),
-            show_about_window: false,
-            confirm_delete: None,
             selected_appdata_folder: "Roaming".to_string(),
             tx: Some(tx),
             rx: Some(rx),
+            total_size: 0,
+
+            // 界面状态初始化
+            show_about_window: false,
+            show_ai_config_window: false,
+            show_prompt_editor: false,
+            confirm_delete: None,
+            status: Some("未扫描".to_string()),
+
+            // 日志相关初始化
             is_logging_enabled: false,
             previous_logging_state: false,
-            ignored_folders: ignore::load_ignored_folders(),
-            move_module: Default::default(),
-            folder_descriptions: None,
-            yaml_error_logged: false,
-            status: Some("未扫描".to_string()),
+
+            // 排序相关初始化
             sort_criterion: None,
             sort_order: None,
-            total_size: 0,
-            ai_config,                    // 移动 ai_config
-            ai_retry_attempts: attempts,  // 使用保存的值
-            ai_retry_delay: delay,        // 使用保存的值
-            show_prompt_editor: false,
-            ai_client: None, // 初始化 ai_client 字段
+
+            // 文件夹描述相关初始化
+            folder_descriptions: None,
+            yaml_error_logged: false,
+            ignored_folders: ignore::load_ignored_folders(),
+
+            // 移动模块初始化
+            move_module: Default::default(),
+
+            // AI相关初始化
+            ai_handler,
+            ai_config,
             ai_tx: Some(ai_tx),
             ai_rx: Some(ai_rx),
         }
@@ -166,69 +184,16 @@ impl eframe::App for AppDataCleaner {
                 if ui.button("一键生成所有描述").clicked() {
                     let folder_data = self.folder_data.clone();
                     let selected_folder = self.selected_appdata_folder.clone();
-                    let mut ai_config = self.ai_config.clone();
-                    let ai_tx = self.ai_tx.clone();
+                    let handler = self.ai_handler.clone(); // 克隆Arc<Mutex<>>
                     
-                    // 更新状态提示正在处理
                     self.status = Some("正在生成描述...".to_string());
                     
-                    // 创建一个新的客户端实例
-                    let client = AIClient::new(ai_config.clone());
-                    
-                    // 创建一个后台任务
                     std::thread::spawn(move || {
                         let rt = tokio::runtime::Runtime::new().unwrap();
                         rt.block_on(async {
-                            for (folder, _) in folder_data {
-                                logger::log_info(&format!("开始为 {} 生成描述", folder));
-                                
-                                match client.get_folder_description(&selected_folder, &folder).await {
-                                    Ok(description) => {
-                                        logger::log_info(&format!(
-                                            "成功生成描述 - {}/{}: {}", 
-                                            selected_folder, 
-                                            folder, 
-                                            description
-                                        ));
-                                        
-                                        // 更新配置
-                                        match selected_folder.as_str() {
-                                            "Local" => ai_config.Local.insert(folder.clone(), description.clone()),
-                                            "LocalLow" => ai_config.LocalLow.insert(folder.clone(), description.clone()),
-                                            "Roaming" => ai_config.Roaming.insert(folder.clone(), description.clone()),
-                                            _ => None,
-                                        };
-
-                                        // 立即保存配置到文件
-                                        if let Ok(config_path) = AIConfig::get_config_path() {
-                                            match ai_config.save_to_file(config_path.to_str().unwrap()) {
-                                                Ok(_) => {
-                                                    logger::log_info("配置文件保存成功");
-                                                    // 发送更新消息到 UI
-                                                    if let Some(tx) = &ai_tx {
-                                                        let _ = tx.send((selected_folder.clone(), folder.clone(), description));
-                                                    }
-                                                }
-                                                Err(e) => logger::log_error(&format!("保存配置失败: {}", e)),
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        logger::log_error(&format!(
-                                            "生成描述失败 {}/{}: {}", 
-                                            selected_folder,
-                                            folder, 
-                                            e
-                                        ));
-                                    }
-                                }
-                            }
-                            
-                            // 保存更新后的配置
-                            if let Ok(config_path) = AIConfig::get_config_path() {
-                                match ai_config.save_to_file(config_path.to_str().unwrap()) {
-                                    Ok(_) => logger::log_info("配置文件保存成功"),
-                                    Err(e) => logger::log_error(&format!("保存配置失败: {}", e)),
+                            if let Ok(mut handler) = handler.lock() {
+                                if let Err(e) = handler.generate_all_descriptions(folder_data, selected_folder).await {
+                                    logger::log_error(&format!("批量生成描述失败: {}", e));
                                 }
                             }
                         });
@@ -392,59 +357,16 @@ impl eframe::App for AppDataCleaner {
                         if ui.button("生成描述").clicked() {
                             let folder_name = folder.clone();
                             let selected_folder = self.selected_appdata_folder.clone();
-                            let mut ai_config = self.ai_config.clone();
-                            let ai_tx = self.ai_tx.clone();
+                            let handler = self.ai_handler.clone(); // 克隆Arc<Mutex<>>
                             
-                            // 更新状态提示正在处理
                             self.status = Some(format!("正在为 {} 生成描述...", folder_name));
                             
-                            // 创建一个新的客户端实例
-                            let client = AIClient::new(ai_config.clone());
-                            
-                            // 创建一个后台任务
                             std::thread::spawn(move || {
                                 let rt = tokio::runtime::Runtime::new().unwrap();
                                 rt.block_on(async {
-                                    logger::log_info(&format!("开始为 {} 生成描述", folder_name));
-                                    
-                                    match client.get_folder_description(&selected_folder, &folder_name).await {
-                                        Ok(description) => {
-                                            logger::log_info(&format!(
-                                                "成功生成描述 - {}/{}: {}", 
-                                                selected_folder, 
-                                                folder_name, 
-                                                description
-                                            ));
-                                            
-                                            // 更新配置
-                                            match selected_folder.as_str() {
-                                                "Local" => { ai_config.Local.insert(folder_name.clone(), description.clone()); }
-                                                "LocalLow" => { ai_config.LocalLow.insert(folder_name.clone(), description.clone()); }
-                                                "Roaming" => { ai_config.Roaming.insert(folder_name.clone(), description.clone()); }
-                                                _ => {}
-                                            };
-
-                                            // 立即保存配置到文件
-                                            if let Ok(config_path) = AIConfig::get_config_path() {
-                                                match ai_config.save_to_file(config_path.to_str().unwrap()) {
-                                                    Ok(_) => {
-                                                        logger::log_info("配置文件保存成功");
-                                                        // 发送更新消息到 UI
-                                                        if let Some(tx) = &ai_tx {
-                                                            let _ = tx.send((selected_folder.clone(), folder_name.clone(), description));
-                                                        }
-                                                    }
-                                                    Err(e) => logger::log_error(&format!("保存配置失败: {}", e)),
-                                                }
-                                            }
-                                        }
-                                        Err(e) => {
-                                            logger::log_error(&format!(
-                                                "生成描述失败 {}/{}: {}", 
-                                                selected_folder,
-                                                folder_name, 
-                                                e
-                                            ));
+                                    if let Ok(mut handler) = handler.lock() {
+                                        if let Err(e) = handler.generate_single_description(folder_name.clone(), selected_folder).await {
+                                            logger::log_error(&format!("生成描述失败: {}", e));
                                         }
                                     }
                                 });
@@ -583,19 +505,21 @@ impl eframe::App for AppDataCleaner {
                         }
 
                         if ui.button("测试连接").clicked() {
-                            let client = AIClient::new(self.ai_config.clone());
+                            let handler = self.ai_handler.clone(); // 克隆Arc<Mutex<>>
                             
                             tokio::runtime::Runtime::new()
                                 .unwrap()
                                 .block_on(async {
-                                    match client.test_connection().await {
-                                        Ok(_) => {
-                                            logger::log_info("AI连接测试成功");
-                                            self.status = Some("AI连接测试成功".to_string());
-                                        }
-                                        Err(err) => {
-                                            logger::log_error(&format!("AI连接测试失败: {}", err));
-                                            self.status = Some(format!("AI连接测试失败: {}", err));
+                                    if let Ok(handler) = handler.lock() {
+                                        match handler.test_connection().await {
+                                            Ok(_) => {
+                                                logger::log_info("AI连接测试成功");
+                                                self.status = Some("AI连接测试成功".to_string());
+                                            }
+                                            Err(err) => {
+                                                logger::log_error(&format!("AI连接测试失败: {}", err));
+                                                self.status = Some(format!("AI连接测试失败: {}", err));
+                                            }
                                         }
                                     }
                                 });
