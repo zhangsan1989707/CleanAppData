@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
+use std::sync::mpsc::Sender;  // 添加 Sender 导入
+use std::error::Error;        // 添加标准错误特征
 use crate::logger;
 
 // 为 AIConfig 添加 Clone trait
@@ -33,36 +35,44 @@ impl Default for AIConfig {
         Self {
             name: String::new(),
             model: ModelConfig {
-                url: "https://api.openai.com/v1".to_string(),
+                url: "https://open.bigmodel.cn/api/paas/v4/chat/completions".to_string(),
                 api_key: "your_api_key_here".to_string(),
-                model: "gpt-3.5-turbo".to_string(),
-                prompt: r#"# 角色：  Windows系统专家
+                model: "glm-4-flash".to_string(),
+                prompt: r#"    # 角色：Windows AppData分析专家
 
-# 背景信息：  在Windows操作系统中，AppData文件夹通常包含应用程序数据，这些数据可能是设置、配置文件、缓存文件等。
+您是一个专业的Windows AppData文件夹分析专家。您需要分析用户提供的AppData文件夹信息并按照固定格式回答。
 
-# 工作流程/工作任务：
-- 识别并分析AppData下的[xxx]文件夹中的[xxx]子文件夹。
-- 研究该子文件夹的具体用途。
-- 提供简洁准确的描述。
+## 输入格式验证规则
+当用户输入包含以下要素时视为有效：
+1. 包含"AppData"关键词
+2. 包含主目录[Local|LocalLow|Roaming]之一
+3. 包含具体的应用程序文件夹名称
 
-# 输入提示：  请简述Windows系统中AppData下的[{}]文件夹中的[{}]子文件夹的用途。
+## 输出格式
+```
+- 软件名称：<应用程序名称>
+- 数据类别：[配置|缓存|用户数据|日志]
+- 应用用途：<简要描述（限50字）>
+- 管理建议：[是|否]可安全删除
+```
 
-# 输出示例：
-- 软件：Chrome
-作用：存储Chrome浏览器的用户数据，如历史记录、书签、密码等。
-功能：用户数据管理
+## 示例对话
+用户输入：请分析Windows系统中AppData下Local文件夹中的Microsoft文件夹
 
-- 软件：Dropbox
-作用：存储Dropbox同步的文件和文件夹。
-功能：文件同步与存储
+系统输出：
+- 软件名称：Microsoft Office
+- 数据类别：配置
+- 应用用途：存储Office应用程序的本地设置和临时文件
+- 管理建议：是可安全删除
 
-- 软件：Microsoft Office
-作用：存储Office应用程序的设置和个性化选项。
-功能：应用程序配置和个性化设置
+## 处理指令
+1. 对任何符合输入格式的查询，直接使用输出格式回答
+2. 保持输出格式的严格一致性
+3. 不添加任何额外解释或评论
+4. 确保应用用途描述在50字以内
 
-# 注意事项：
-- 描述应简洁明了，不超过50字。
-- 确保描述的准确性，避免误导用户。"#
+## 注意
+仅当输入完全不符合格式要求时，才返回："请按照正确的输入格式提供查询信息""#
                     .to_string(),
             },
             retry: RetryConfig {
@@ -284,5 +294,117 @@ impl AIClient {
         } else {
             Err(format!("API连接测试失败: {}", response.status()).into())
         }
+    }
+}
+
+// 添加新的AI处理功能结构体
+#[derive(Debug)]
+pub struct AIHandler {
+    config: AIConfig,
+    client: AIClient,
+    tx: Option<Sender<(String, String, String)>>,
+}
+
+impl AIHandler {
+    pub fn new(config: AIConfig, tx: Option<Sender<(String, String, String)>>) -> Self {
+        Self {
+            client: AIClient::new(config.clone()),
+            config,
+            tx,
+        }
+    }
+
+    // 生成单个文件夹的描述
+    pub async fn generate_single_description(
+        &mut self,
+        folder_name: String,
+        selected_folder: String,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        logger::log_info(&format!("开始为 {} 生成描述", folder_name));
+
+        match self.client.get_folder_description(&selected_folder, &folder_name).await {
+            Ok(description) => {
+                logger::log_info(&format!(
+                    "成功生成描述 - {}/{}: {}", 
+                    selected_folder, 
+                    folder_name, 
+                    description
+                ));
+                
+                // 更新配置
+                match selected_folder.as_str() {
+                    "Local" => { self.config.Local.insert(folder_name.clone(), description.clone()); }
+                    "LocalLow" => { self.config.LocalLow.insert(folder_name.clone(), description.clone()); }
+                    "Roaming" => { self.config.Roaming.insert(folder_name.clone(), description.clone()); }
+                    _ => {}
+                };
+
+                // 保存配置并通知
+                if let Err(e) = self.save_config_and_notify(&selected_folder, &folder_name, &description) {
+                    logger::log_error(&format!("保存配置失败: {}", e));
+                }
+                Ok(())
+            }
+            Err(e) => {
+                logger::log_error(&format!(
+                    "生成描述失败 {}/{}: {}", 
+                    selected_folder,
+                    folder_name, 
+                    e
+                ));
+                Err(e)
+            }
+        }
+    }
+
+    // 批量生成所有文件夹的描述
+    pub async fn generate_all_descriptions(
+        &mut self,
+        folder_data: Vec<(String, u64)>,
+        selected_folder: String,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        for (folder, _) in folder_data {
+            if let Err(e) = self.generate_single_description(folder.clone(), selected_folder.clone()).await {
+                logger::log_error(&format!("处理文件夹 {} 时发生错误: {}", folder, e));
+                continue;
+            }
+        }
+        Ok(())
+    }
+
+    // 保存配置并通知UI更新
+    fn save_config_and_notify(
+        &self,
+        selected_folder: &str,
+        folder_name: &str,
+        description: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let Ok(config_path) = AIConfig::get_config_path() {
+            match self.config.save_to_file(config_path.to_str().unwrap()) {
+                Ok(_) => {
+                    logger::log_info("配置文件保存成功");
+                    // 发送更新消息到 UI
+                    if let Some(tx) = &self.tx {
+                        let _ = tx.send((
+                            selected_folder.to_string(),
+                            folder_name.to_string(),
+                            description.to_string(),
+                        ));
+                    }
+                    Ok(())
+                }
+                Err(e) => {
+                    logger::log_error(&format!("保存配置失败: {}", e));
+                    Err(e.into())
+                }
+            }
+        } else {
+            Err("无法获取配置文件路径".into())
+        }
+    }
+
+    // 测试API连接
+    pub async fn test_connection(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.client.test_connection().await
     }
 }
