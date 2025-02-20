@@ -1,16 +1,16 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
-use std::sync::mpsc::Sender;  // 添加 Sender 导入
-use std::error::Error;        // 添加标准错误特征
+use std::sync::mpsc::Sender;
+use std::error::Error;
 use crate::logger;
 
-// 为 AIConfig 添加 Clone trait
+// 1. 配置结构定义 - 删除了未使用的字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AIConfig {
-    pub name: String,
     pub model: ModelConfig,
     pub retry: RetryConfig,
+    // 文件夹描述映射
     pub Local: HashMap<String, String>,
     pub LocalLow: HashMap<String, String>,
     pub Roaming: HashMap<String, String>,
@@ -30,17 +30,17 @@ pub struct RetryConfig {
     pub delay: u32,
 }
 
+// 2. 配置管理实现
 impl Default for AIConfig {
     fn default() -> Self {
         Self {
-            name: String::new(),
             model: ModelConfig {
                 url: "https://open.bigmodel.cn/api/paas/v4/chat/completions".to_string(),
                 api_key: "your_api_key_here".to_string(),
                 model: "glm-4-flash".to_string(),
                 prompt: r#"    # 角色：Windows AppData分析专家
 
-您是一个专业的Windows AppData文件夹分析专家。您需要分析用户提供的AppData文件夹信息并按照固定格式回答。
+您是一个专业的WindowsAppData文件夹分析专家。您需要分析用户提供的AppData文件夹信息并按照固定格式回答。
 
 ## 输入格式验证规则
 当用户输入包含以下要素时视为有效：
@@ -91,58 +91,23 @@ impl AIConfig {
         Self::default()
     }
 
-    // 简化路径处理，直接使用固定路径
-    pub fn get_config_path() -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    pub fn get_config_path() -> Result<std::path::PathBuf, Box<dyn Error>> {
         Ok(std::path::PathBuf::from("folders_description.yaml"))
     }
 
-    pub fn load_from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load_from_file(path: &str) -> Result<Self, Box<dyn Error>> {
         let content = std::fs::read_to_string(path)?;
-        let config: AIConfig = serde_yaml::from_str(&content)?;
-        Ok(config)
+        Ok(serde_yaml::from_str(&content)?)
     }
 
-    pub fn save_to_file(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // 序列化配置
-        let content = serde_yaml::to_string(self)?;
-
-        // 写入文件
-        std::fs::write(path, content)?;
-        
+    pub fn save_to_file(&self, path: &str) -> Result<(), Box<dyn Error>> {
+        std::fs::write(path, serde_yaml::to_string(self)?)?;
         logger::log_info(&format!("配置文件已保存到: {}", path));
-        
         Ok(())
     }
 
-    pub fn create_default_config(
-        name: Option<String>,
-        api_key: Option<String>,
-        model: Option<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut config = Self::default();
-
-        // 使用提供的参数更新配置
-        if let Some(name) = name {
-            config.name = name;
-        }
-        if let Some(api_key) = api_key {
-            config.model.api_key = api_key;
-        }
-        if let Some(model) = model {
-            config.model.model = model;
-        }
-
-        // 获取正确的配置文件路径
-        let config_path = Self::get_config_path()?;
-        config.save_to_file(config_path.to_str().unwrap())?;
-
-        Ok(())
-    }
-
+    // 简化验证逻辑，只验证必要字段
     pub fn validate(&self) -> Result<(), String> {
-        if self.name.trim().is_empty() {
-            return Err("配置名称不能为空".to_string());
-        }
         if self.model.url.trim().is_empty() {
             return Err("API地址不能为空".to_string());
         }
@@ -156,7 +121,7 @@ impl AIConfig {
     }
 }
 
-// API 请求相关结构体
+// 3. API通信结构
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
     pub role: String,
@@ -179,14 +144,13 @@ pub struct Choice {
     pub message: Message,
 }
 
-// AI 客户端结构体
+// 4. AI客户端实现
 #[derive(Debug)]
 pub struct AIClient {
     config: AIConfig,
     client: reqwest::Client,
 }
 
-// 实现 AIClient
 impl AIClient {
     pub fn new(config: AIConfig) -> Self {
         Self {
@@ -195,12 +159,11 @@ impl AIClient {
         }
     }
 
-    // 发送请求到 AI API 并处理重试
     pub async fn get_folder_description(
         &self,
         dir_1: &str,
         dir_2: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
         let mut attempts = 0;
         let max_attempts = self.config.retry.attempts;
         let delay = Duration::from_secs(self.config.retry.delay as u64);
@@ -224,12 +187,11 @@ impl AIClient {
         }
     }
 
-    // 单次请求实现
     async fn try_get_description(
         &self,
         dir_1: &str,
         dir_2: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
         let request = ChatRequest {
             messages: vec![
                 Message {
@@ -271,8 +233,7 @@ impl AIClient {
         }
     }
 
-    // 测试连接
-    pub async fn test_connection(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn test_connection(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         let request = ChatRequest {
             messages: vec![Message {
                 role: "user".to_string(),
@@ -297,7 +258,7 @@ impl AIClient {
     }
 }
 
-// 添加新的AI处理功能结构体
+// 5. AI处理器实现
 #[derive(Debug)]
 pub struct AIHandler {
     config: AIConfig,
@@ -314,55 +275,74 @@ impl AIHandler {
         }
     }
 
-    // 生成单个文件夹的描述
+    // 处理单个文件夹
     pub async fn generate_single_description(
         &mut self,
         folder_name: String,
         selected_folder: String,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         logger::log_info(&format!("开始为 {} 生成描述", folder_name));
 
         match self.client.get_folder_description(&selected_folder, &folder_name).await {
-            Ok(description) => {
-                logger::log_info(&format!(
-                    "成功生成描述 - {}/{}: {}", 
-                    selected_folder, 
-                    folder_name, 
-                    description
-                ));
-                
-                // 更新配置
-                match selected_folder.as_str() {
-                    "Local" => { self.config.Local.insert(folder_name.clone(), description.clone()); }
-                    "LocalLow" => { self.config.LocalLow.insert(folder_name.clone(), description.clone()); }
-                    "Roaming" => { self.config.Roaming.insert(folder_name.clone(), description.clone()); }
-                    _ => {}
-                };
-
-                // 保存配置并通知
-                if let Err(e) = self.save_config_and_notify(&selected_folder, &folder_name, &description) {
-                    logger::log_error(&format!("保存配置失败: {}", e));
-                }
-                Ok(())
-            }
-            Err(e) => {
-                logger::log_error(&format!(
-                    "生成描述失败 {}/{}: {}", 
-                    selected_folder,
-                    folder_name, 
-                    e
-                ));
-                Err(e)
-            }
+            Ok(description) => self.handle_success_response(&selected_folder, &folder_name, &description),
+            Err(e) => self.handle_error_response(&selected_folder, &folder_name, e),
         }
     }
 
-    // 批量生成所有文件夹的描述
+    // 处理成功响应
+    fn handle_success_response(
+        &mut self,
+        selected_folder: &str,
+        folder_name: &str,
+        description: &str,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        logger::log_info(&format!(
+            "成功生成描述 - {}/{}: {}", 
+            selected_folder, 
+            folder_name, 
+            description
+        ));
+        
+        self.update_folder_description(selected_folder, folder_name, description);
+        
+        if let Err(e) = self.save_config_and_notify(selected_folder, folder_name, description) {
+            logger::log_error(&format!("保存配置失败: {}", e));
+        }
+        Ok(())
+    }
+
+    // 简化错误处理方法
+    fn handle_error_response(
+        &self,
+        selected_folder: &str,
+        folder_name: &str,
+        error: Box<dyn Error + Send + Sync>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        logger::log_error(&format!(
+            "生成描述失败 {}/{}: {}", 
+            selected_folder,
+            folder_name, 
+            error
+        ));
+        Err(error)
+    }
+
+    // 更新配置
+    fn update_folder_description(&mut self, selected_folder: &str, folder_name: &str, description: &str) {
+        match selected_folder {
+            "Local" => { self.config.Local.insert(folder_name.to_string(), description.to_string()); }
+            "LocalLow" => { self.config.LocalLow.insert(folder_name.to_string(), description.to_string()); }
+            "Roaming" => { self.config.Roaming.insert(folder_name.to_string(), description.to_string()); }
+            _ => {}
+        };
+    }
+
+    // 批量处理
     pub async fn generate_all_descriptions(
         &mut self,
         folder_data: Vec<(String, u64)>,
         selected_folder: String,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         for (folder, _) in folder_data {
             if let Err(e) = self.generate_single_description(folder.clone(), selected_folder.clone()).await {
                 logger::log_error(&format!("处理文件夹 {} 时发生错误: {}", folder, e));
@@ -372,13 +352,13 @@ impl AIHandler {
         Ok(())
     }
 
-    // 保存配置并通知UI更新
+    // 保存配置并通知UI
     fn save_config_and_notify(
         &self,
         selected_folder: &str,
         folder_name: &str,
         description: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn Error>> {
         if let Ok(config_path) = AIConfig::get_config_path() {
             match self.config.save_to_file(config_path.to_str().unwrap()) {
                 Ok(_) => {
@@ -403,8 +383,13 @@ impl AIHandler {
         }
     }
 
-    // 测试API连接
-    pub async fn test_connection(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn test_connection(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.client.test_connection().await
+    }
+
+    // 添加更新配置的方法
+    pub fn update_config(&mut self, config: AIConfig) {
+        self.config = config;
+        self.client = AIClient::new(self.config.clone());
     }
 }
