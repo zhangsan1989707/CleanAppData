@@ -41,7 +41,7 @@
 
 ### 运行
 > [!caution]
-> 
+>
 > 请注意，删除操作不可逆，请谨慎操作。
 - 双击运行
 - 点击“立即扫描”,软件会自动扫描 Appdata 文件夹，并显示扫描结果。
@@ -106,6 +106,11 @@ cargo build --release
 - [TC999](https://github.com/TC999) - 作者
 - [ChatGPT](https://chatgpt.com/) - 代码编写
 - [egui](https://github.com/emilk/egui) - GUI 框架
+
+### 所有贡献者
+
+[![贡献者](https://contrib.rocks/image?repo=TC999/AppDataCleaner)](https://github.com/TC999/AppDataCleaner/graphs/contributors)
+
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
 
@@ -125,7 +130,7 @@ cargo build --release
 [discussions-url]: https://github.com/TC999/AppDataCleaner/discussions "讨论"
 
 [hits-url]: https://hits.dwyl.com/ "访问量"
-[hits-image]: https://custom-icon-badges.demolab.com/endpoint?url=https%3A%2F%2Fhits.dwyl.com%2FTC999%2FAppDataCleaner.json%3Fcolor%3Dgreen&label=%E8%AE%BF%E9%97%AE%E9%87%8F&logo=graph 
+[hits-image]: https://custom-icon-badges.demolab.com/endpoint?url=https%3A%2F%2Fhits.dwyl.com%2FTC999%2FAppDataCleaner.json%3Fcolor%3Dgreen&label=%E8%AE%BF%E9%97%AE%E9%87%8F&logo=graph
 
 [repo-url]: https://github.com/TC999/AppDataCleaner "仓库地址"
 
