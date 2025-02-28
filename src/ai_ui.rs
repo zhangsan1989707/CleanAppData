@@ -22,10 +22,6 @@ impl AIConfigurationUI {
     }
 
     pub fn show(&mut self, ctx: &egui::Context) {
-        if self.show_ai_config_window {
-            self.show_config_window(ctx);
-        }
-
         if self.show_prompt_editor {
             self.show_prompt_editor_window(ctx);
         }
@@ -44,17 +40,6 @@ impl AIConfigurationUI {
     // 添加更新状态的方法
     pub fn set_status(&mut self, status: String) {
         self.status = Some(status);
-    }
-
-    fn show_config_window(&mut self, ctx: &egui::Context) {
-        egui::Window::new("AI配置")
-            .resizable(true)
-            .collapsible(true)
-            .min_width(400.0)
-            .min_height(500.0)
-            .show(ctx, |ui| {
-                self.draw_config_ui(ui);
-            });
     }
 
     fn show_prompt_editor_window(&mut self, ctx: &egui::Context) {
@@ -78,7 +63,8 @@ impl AIConfigurationUI {
             });
     }
 
-    fn draw_config_ui(&mut self, ui: &mut egui::Ui) {
+    // 修改为公共方法，可以直接在主面板上调用
+    pub fn draw_config_ui(&mut self, ui: &mut egui::Ui) {
         ui.heading("AI配置生成器");
         
         // 基本配置组
@@ -199,10 +185,6 @@ impl AIConfigurationUI {
                         }
                     });
                 });
-            }
-
-            if ui.button("关闭").clicked() {
-                self.show_ai_config_window = false;
             }
         });
 

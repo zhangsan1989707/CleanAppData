@@ -7,24 +7,44 @@ pub fn show_about_window(ctx: &egui::Context, open: &mut bool) {
         .resizable(false)
         .collapsible(false)
         .show(ctx, |ui| {
-            ui.heading("AppData Cleaner");
-            ui.horizontal(|ui| {
-                ui.label("作者: ");
-                // 将作者名字包装为可点击链接
-                ui.hyperlink_to("TC999", "https://github.com/TC999"); // 点击名字跳转到指定链接
-            });
-            // 添加可点击的链接
-            ui.horizontal(|ui| {
-                ui.label("源代码仓库:");
-                ui.hyperlink("https://github.com/TC999/AppDataCleaner");
-            });
-            ui.horizontal(|ui| {
-                // BUG 反馈
-                ui.hyperlink_to("议题", "https://github.com/TC999/AppDataCleaner/issues");
-            });
-            ui.label("许可证: GPL-3.0");
-            ui.label(format!("版本: {}", version));
-            ui.label("鸣谢:");
-            ui.hyperlink_to("egui", "https://github.com/emilk/egui");
+            show_about_content(ui);
         });
+}
+
+// 新增：直接在UI面板中显示关于内容
+pub fn show_about_content(ui: &mut egui::Ui) {
+    let version = env!("CARGO_PKG_VERSION");
+    
+    ui.heading("AppData Cleaner");
+    ui.add_space(10.0);
+    
+    ui.horizontal(|ui| {
+        ui.label("作者: ");
+        ui.hyperlink_to("TC999", "https://github.com/TC999");
+    });
+    
+    ui.add_space(5.0);
+    
+    ui.horizontal(|ui| {
+        ui.label("源代码仓库:");
+        ui.hyperlink("https://github.com/TC999/AppDataCleaner");
+    });
+    
+    ui.add_space(5.0);
+    
+    ui.horizontal(|ui| {
+        ui.label("议题反馈:");
+        ui.hyperlink_to("GitHub Issues", "https://github.com/TC999/AppDataCleaner/issues");
+    });
+    
+    ui.add_space(10.0);
+    
+    ui.label(format!("版本: {}", version));
+    ui.label("许可证: GPL-3.0");
+    
+    ui.add_space(20.0);
+    
+    ui.heading("鸣谢:");
+    ui.label("egui - 一个简单、快速、高度可移植的即时模式 GUI 库");
+    ui.hyperlink_to("egui 官方网站", "https://github.com/emilk/egui");
 }

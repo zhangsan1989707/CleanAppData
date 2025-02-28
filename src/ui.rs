@@ -23,6 +23,7 @@ pub struct AppDataCleaner {
     show_prompt_editor: bool,        // Prompt编辑器显示状态 
     confirm_delete: Option<(String, bool)>,
     status: Option<String>,          // 状态信息
+    current_tab: String,             // 当前选中的标签页
 
     // 日志相关字段
     is_logging_enabled: bool,
@@ -86,6 +87,7 @@ impl Default for AppDataCleaner {
             show_prompt_editor: false,
             confirm_delete: None,
             status: Some("未扫描".to_string()),
+            current_tab: "主页".to_string(),  // 默认选中主页标签
 
             // 日志相关初始化
             is_logging_enabled: false,
@@ -218,9 +220,40 @@ impl AppDataCleaner {
             });
         });
     }
-}
 
-impl eframe::App for AppDataCleaner {
+    fn show_top_menu(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            ui.horizontal(|ui| {  
+                // 左侧标签页和选项
+                ui.selectable_value(&mut self.current_tab, "主页".to_string(), "主页");
+                ui.selectable_value(&mut self.current_tab, "关于".to_string(), "关于");
+                ui.selectable_value(&mut self.current_tab, "AI配置".to_string(), "AI配置");
+                ui.label("|"); // 添加分隔符
+                ui.checkbox(&mut self.is_logging_enabled, "启用日志");
+
+                // 添加一个弹性空间，将后面的内容推到右侧
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    // 切换文件夹按钮
+                    ui.menu_button("切换文件夹", |ui| {
+                        for folder in ["Roaming", "Local", "LocalLow"] {
+                            if ui.button(folder).clicked() {
+                                self.selected_appdata_folder = folder.to_string();
+                                self.folder_data.clear();
+                                self.is_scanning = false;
+                                self.status = Some("未扫描".to_string()); // 更新状态为 "未扫描"
+                                ui.close_menu();
+                            }
+                        }
+                    });
+                    // 当前目标文件夹显示
+                    ui.label(format!("当前目标: {}", self.selected_appdata_folder));
+                });
+            });
+
+            ui.separator();
+        });
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
         
@@ -242,9 +275,14 @@ impl eframe::App for AppDataCleaner {
         // 顶部菜单
         self.show_top_menu(ctx);
 
-        // 主面板
+        // 主面板 - 根据当前标签页显示不同内容
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.show_main_panel(ui);
+            match self.current_tab.as_str() {
+                "主页" => self.show_main_panel(ui),
+                "关于" => about::show_about_content(ui),
+                "AI配置" => self.ai_ui.draw_config_ui(ui),
+                _ => self.show_main_panel(ui),
+            }
         });
 
         // 窗口显示
@@ -281,67 +319,40 @@ impl AppDataCleaner {
         ); // 传递 folder_data
     }
 
-    fn show_top_menu(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {  // 使用 horizontal 布局让按钮并排
-                if ui.button("关于").clicked() {
-                    self.show_about_window = true;
-                    ui.close_menu();
-                }
-                if ui.button("AI配置").clicked() {
-                    self.ai_ui.show_ai_config_window = true;
-                    ui.close_menu();
-                }
-                if ui.button("一键生成所有描述").clicked() {
-                    let folder_data = self.folder_data.clone();
-                    let selected_folder = self.selected_appdata_folder.clone();
-                    let handler = self.ai_ui.get_handler();
-                    
-                    self.status = Some("正在生成描述...".to_string());
-                    
-                    std::thread::spawn(move || {
-                        let rt = tokio::runtime::Runtime::new().unwrap();
-                        rt.block_on(async {
-                            if let Ok(mut handler) = handler.lock() {
-                                if let Err(e) = handler.generate_all_descriptions(folder_data, selected_folder).await {
-                                    logger::log_error(&format!("批量生成描述失败: {}", e));
-                                }
-                            }
-                        });
-                    });
-                }
-            });
-
-            ui.separator();
-            ui.checkbox(&mut self.is_logging_enabled, "启用日志");
-
-            ui.menu_button("切换文件夹", |ui| {
-                for folder in ["Roaming", "Local", "LocalLow"] {
-                    if ui.button(folder).clicked() {
-                        self.selected_appdata_folder = folder.to_string();
-                        self.folder_data.clear();
-                        self.is_scanning = false;
-                        self.status = Some("未扫描".to_string()); // 更新状态为 "未扫描"
-                        ui.close_menu();
-                    }
-                }
-            });
-            ui.label(format!("当前目标: {}", self.selected_appdata_folder));
-        });
-    }
-
     fn show_main_panel(&mut self, ui: &mut egui::Ui) {
-        // 扫描按钮和状态显示
-        if ui.button("立即扫描").clicked() && !self.is_scanning {
-            self.is_scanning = true;
-            self.folder_data.clear();
-            self.status = Some("扫描中...".to_string()); // 更新状态为 "扫描中..."
+        // 扫描按钮和生成描述按钮放在一起
+        ui.horizontal(|ui| {
+            if ui.button("立即扫描").clicked() && !self.is_scanning {
+                self.is_scanning = true;
+                self.folder_data.clear();
+                self.status = Some("扫描中...".to_string()); // 更新状态为 "扫描中..."
 
-            let tx = self.tx.clone().unwrap();
-            let folder_type = self.selected_appdata_folder.clone();
+                let tx = self.tx.clone().unwrap();
+                let folder_type = self.selected_appdata_folder.clone();
 
-            scanner::scan_appdata(tx, &folder_type);
-        }
+                scanner::scan_appdata(tx, &folder_type);
+            }
+            
+            // 将"一键生成所有描述"按钮移到这里
+            if ui.button("一键生成所有描述").clicked() {
+                let folder_data = self.folder_data.clone();
+                let selected_folder = self.selected_appdata_folder.clone();
+                let handler = self.ai_ui.get_handler();
+                
+                self.status = Some("正在生成描述...".to_string());
+                
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    rt.block_on(async {
+                        if let Ok(mut handler) = handler.lock() {
+                            if let Err(e) = handler.generate_all_descriptions(folder_data, selected_folder).await {
+                                logger::log_error(&format!("批量生成描述失败: {}", e));
+                            }
+                        }
+                    });
+                });
+            }
+        });
 
         if let Some(rx) = &self.rx {
             while let Ok((folder, size)) = rx.try_recv() {
@@ -446,5 +457,11 @@ impl AppDataCleaner {
 
         // 移动窗口
         self.move_module.show_move_window(ctx);
+    }
+}
+
+impl eframe::App for AppDataCleaner {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.update(ctx, frame);
     }
 }
