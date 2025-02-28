@@ -7,6 +7,8 @@ use crate::logger;
 
 // 1. 配置结构定义 - 删除了未使用的字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[allow(non_snake_case)]
+
 pub struct AIConfig {
     pub model: ModelConfig,
     pub retry: RetryConfig,
