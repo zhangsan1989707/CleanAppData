@@ -67,11 +67,8 @@ impl AIConfigurationUI {
     pub fn draw_config_ui(&mut self, ui: &mut egui::Ui) {
         ui.heading("AI配置生成器");
         
-        // 基本配置组
-        self.draw_basic_settings(ui);
-        
         // API配置组
-        self.draw_api_settings(ui);
+        self.draw_basic_settings(ui);
         
         // 重试配置组
         self.draw_retry_settings(ui);
@@ -85,7 +82,7 @@ impl AIConfigurationUI {
 
     fn draw_basic_settings(&mut self, ui: &mut egui::Ui) {
         ui.group(|ui| {
-            ui.heading("基本设置");
+            ui.heading("API设置");
             // API 配置
             ui.horizontal(|ui| {
                 ui.label("API地址:");
@@ -93,21 +90,7 @@ impl AIConfigurationUI {
             });
             ui.horizontal(|ui| {
                 ui.label("API密钥:");
-                ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.api_key).password(true));
-            });
-            ui.horizontal(|ui| {
-                ui.label("模型名称:");
-                ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.model));
-            });
-        });
-    }
-
-    fn draw_api_settings(&mut self, ui: &mut egui::Ui) {
-        ui.group(|ui| {
-            ui.heading("API设置");
-            ui.horizontal(|ui| {
-                ui.label("API密钥:");
-                ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.api_key).password(true));
+                ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.api_key).password(false));
             });
             ui.horizontal(|ui| {
                 ui.label("模型名称:");
