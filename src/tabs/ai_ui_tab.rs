@@ -12,7 +12,6 @@ enum ConfigTab {
 
 pub struct AIConfigurationUI {
     pub show_ai_config_window: bool,
-    pub show_prompt_editor: bool,
     ai_config: AIConfig,
     ai_handler: Arc<Mutex<AIHandler>>,
     status: Option<String>,
@@ -24,7 +23,6 @@ impl AIConfigurationUI {
     pub fn new(ai_config: AIConfig, ai_handler: Arc<Mutex<AIHandler>>) -> Self {
         Self {
             show_ai_config_window: false,
-            show_prompt_editor: false,
             ai_config: ai_config.clone(),
             ai_handler,
             status: None,
@@ -33,10 +31,9 @@ impl AIConfigurationUI {
         }
     }
 
-    pub fn show(&mut self, ctx: &egui::Context) {
-        if self.show_prompt_editor {
-            self.show_prompt_editor_window(ctx);
-        }
+    // 修复未使用变量警告，添加下划线前缀
+    pub fn show(&mut self, _ctx: &egui::Context) {
+        // 目前此方法为空，但保留参数以便将来可能的用途
     }
 
     // 添加获取 handler 的方法
@@ -85,33 +82,6 @@ impl AIConfigurationUI {
                 }
             }
         }
-    }
-
-    fn show_prompt_editor_window(&mut self, ctx: &egui::Context) {
-        egui::Window::new("Prompt编辑器")
-            .resizable(true)
-            .show(ctx, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(&mut self.ai_config.model.prompt)
-                        .desired_width(f32::INFINITY)
-                        .desired_rows(20)
-                );
-                
-                ui.horizontal(|ui| {
-                    if ui.button("确定").clicked() {
-                        self.show_prompt_editor = false;
-                        // 退出编辑器时检查并保存配置
-                        self.check_and_save_config();
-                    }
-                    if ui.button("取消").clicked() {
-                        // 如果取消，则需要恢复原来的 prompt
-                        if let Some(last_config) = &self.last_config {
-                            self.ai_config.model.prompt = last_config.model.prompt.clone();
-                        }
-                        self.show_prompt_editor = false;
-                    }
-                });
-            });
     }
 
     // 修改为公共方法，可以直接在主面板上调用
@@ -276,11 +246,41 @@ impl AIConfigurationUI {
     }
 
     fn draw_prompt_settings(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Prompt设置");
-        if ui.button("编辑Prompt").clicked() {
-            self.show_prompt_editor = true;
-        }
-        ui.label("当前Prompt预览:");
-        ui.label(self.ai_config.model.prompt.lines().take(3).collect::<Vec<_>>().join("\n"));
+        // 将标题和重置按钮放在同一行
+        ui.horizontal(|ui| {
+            ui.heading("Prompt设置");
+            // 添加一些间距，使布局更美观
+            ui.add_space(8.0);
+            if ui.button("重置为默认").clicked() {
+                // 创建默认配置以获取默认Prompt
+                let default_config = AIConfig::default();
+                self.ai_config.model.prompt = default_config.model.prompt.clone();
+                
+                // 标记为已更改，触发自动保存
+                self.status = Some("已重置为默认Prompt".to_string());
+                self.check_and_save_config();
+            }
+        });
+        
+        // 使用垂直滚动区域来包裹多行文本编辑器
+        egui::ScrollArea::vertical()
+            .max_height(400.0) // 限制最大高度，确保在小屏幕上也能看到操作状态
+            .show(ui, |ui| {
+                // 添加多行文本编辑器，占据可用宽度
+                let text_edit = egui::TextEdit::multiline(&mut self.ai_config.model.prompt)
+                    .desired_width(ui.available_width()) // 占据全部可用宽度
+                    .desired_rows(20) // 默认显示20行
+                    .code_editor() // 使用代码编辑器风格，更适合编辑提示词
+                    .font(egui::TextStyle::Monospace); // 使用等宽字体
+                
+                if ui.add(text_edit).changed() {
+                    // Prompt 内容发生变化时，自动保存配置
+                    self.check_and_save_config();
+                }
+            });
+        
+        // 在底部添加一个提示，告诉用户内容会自动保存
+        ui.separator();
+        ui.small("提示: 内容修改后会自动保存");
     }
 }
