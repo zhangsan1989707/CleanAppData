@@ -123,7 +123,8 @@ impl AIConfigurationUI {
             self.check_and_save_config();
         });
     }
-
+    
+    // 添加绘制基本设置的方法
     fn draw_basic_settings(&mut self, ui: &mut egui::Ui) {
         ui.heading("API设置");
         
@@ -169,7 +170,7 @@ impl AIConfigurationUI {
                     let result = rt.block_on(async {
                         if let Ok(handler) = handler.lock() {
                             match handler.test_connection().await {
-                                Ok(_) => Ok("连接测试成功".to_string()),
+                                Ok(message) => Ok(message),
                                 Err(e) => Err(format!("连接失败: {}", e)),
                             }
                         } else {
@@ -231,6 +232,7 @@ impl AIConfigurationUI {
         });
     }
 
+    // 添加绘制重试设置的方法
     fn draw_retry_settings(&mut self, ui: &mut egui::Ui) {
         ui.heading("重试设置");
         ui.horizontal(|ui| {
@@ -245,6 +247,7 @@ impl AIConfigurationUI {
         });
     }
 
+    // 添加绘制 Prompt 设置的方法
     fn draw_prompt_settings(&mut self, ui: &mut egui::Ui) {
         // 将标题和重置按钮放在同一行
         ui.horizontal(|ui| {
