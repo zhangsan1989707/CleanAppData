@@ -17,6 +17,7 @@ pub struct AIConfigurationUI {
     status: Option<String>,
     current_tab: ConfigTab,
     last_config: Option<AIConfig>,
+    is_password_visible: bool,
 }
 
 impl AIConfigurationUI {
@@ -28,6 +29,7 @@ impl AIConfigurationUI {
             status: None,
             current_tab: ConfigTab::ApiSettings,
             last_config: Some(ai_config),
+            is_password_visible: false,
         }
     }
 
@@ -56,13 +58,13 @@ impl AIConfigurationUI {
         let config_changed = match &self.last_config {
             Some(last) => {
                 // 简单比较一些关键字段
-                last.model.url != self.ai_config.model.url ||
-                last.model.api_key != self.ai_config.model.api_key ||
-                last.model.model != self.ai_config.model.model ||
-                last.retry.attempts != self.ai_config.retry.attempts ||
-                last.retry.delay != self.ai_config.retry.delay ||
-                last.model.prompt != self.ai_config.model.prompt
-            },
+                last.model.url != self.ai_config.model.url
+                    || last.model.api_key != self.ai_config.model.api_key
+                    || last.model.model != self.ai_config.model.model
+                    || last.retry.attempts != self.ai_config.retry.attempts
+                    || last.retry.delay != self.ai_config.retry.delay
+                    || last.model.prompt != self.ai_config.model.prompt
+            }
             None => true,
         };
 
@@ -77,7 +79,7 @@ impl AIConfigurationUI {
                         if let Ok(mut handler) = self.ai_handler.lock() {
                             handler.update_config(self.ai_config.clone());
                         }
-                    },
+                    }
                     Err(e) => self.status = Some(format!("自动保存失败: {}", e)),
                 }
             }
@@ -90,68 +92,91 @@ impl AIConfigurationUI {
         ui.vertical(|ui| {
             // 顶部标签栏
             ui.horizontal(|ui| {
-                if ui.selectable_label(self.current_tab == ConfigTab::ApiSettings, "API设置").clicked() {
+                if ui
+                    .selectable_label(self.current_tab == ConfigTab::ApiSettings, "API设置")
+                    .clicked()
+                {
                     self.current_tab = ConfigTab::ApiSettings;
                 }
-                if ui.selectable_label(self.current_tab == ConfigTab::RetrySettings, "重试设置").clicked() {
+                if ui
+                    .selectable_label(self.current_tab == ConfigTab::RetrySettings, "重试设置")
+                    .clicked()
+                {
                     self.current_tab = ConfigTab::RetrySettings;
                 }
-                if ui.selectable_label(self.current_tab == ConfigTab::PromptSettings, "Prompt设置").clicked() {
+                if ui
+                    .selectable_label(self.current_tab == ConfigTab::PromptSettings, "Prompt设置")
+                    .clicked()
+                {
                     self.current_tab = ConfigTab::PromptSettings;
                 }
             });
-            
+
             ui.separator();
-            
+
             // 中间部分：根据选中的标签显示对应的内容区域
-            ui.group(|ui| {
-                match self.current_tab {
-                    ConfigTab::ApiSettings => self.draw_basic_settings(ui),
-                    ConfigTab::RetrySettings => self.draw_retry_settings(ui),
-                    ConfigTab::PromptSettings => self.draw_prompt_settings(ui),
-                }
+            ui.group(|ui| match self.current_tab {
+                ConfigTab::ApiSettings => self.draw_basic_settings(ui),
+                ConfigTab::RetrySettings => self.draw_retry_settings(ui),
+                ConfigTab::PromptSettings => self.draw_prompt_settings(ui),
             });
-            
+
             ui.separator();
-            
+
             // 显示状态信息
             if let Some(status) = &self.status {
                 ui.label(status);
             }
-            
+
             // 检查配置是否变化并自动保存
             self.check_and_save_config();
         });
     }
-    
+
     // 添加绘制基本设置的方法
     fn draw_basic_settings(&mut self, ui: &mut egui::Ui) {
         ui.heading("API设置");
-        
+
         let mut changed = false;
-        
+
         // API 配置
         ui.horizontal(|ui| {
             ui.label("API地址:");
-            if ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.url)).changed() {
+            if ui
+                .add(egui::TextEdit::singleline(&mut self.ai_config.model.url))
+                .changed()
+            {
                 changed = true;
             }
         });
-        
+
         ui.horizontal(|ui| {
             ui.label("API密钥:");
-            if ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.api_key).password(false)).changed() {
+            let mut is_password_visible = false;
+            if ui
+                .add(
+                    egui::TextEdit::singleline(&mut self.ai_config.model.api_key)
+                        .password(!is_password_visible),
+                )
+                .changed()
+            {
                 changed = true;
             }
+            if ui.button("显示/隐藏").clicked() {
+                is_password_visible = !is_password_visible;
+            }
         });
-        
+
         ui.horizontal(|ui| {
             ui.label("模型名称:");
-            if ui.add(egui::TextEdit::singleline(&mut self.ai_config.model.model)).changed() {
+            if ui
+                .add(egui::TextEdit::singleline(&mut self.ai_config.model.model))
+                .changed()
+            {
                 changed = true;
             }
         });
-        
+
         // 添加测试连接按钮 - 修复生命周期问题
         ui.horizontal(|ui| {
             if ui.button("测试连接").clicked() {
@@ -159,11 +184,11 @@ impl AIConfigurationUI {
                 if changed {
                     self.check_and_save_config();
                 }
-                
+
                 // 使用通道来传递连接测试结果
                 let (tx, rx) = std::sync::mpsc::channel();
                 let handler = self.ai_handler.clone();
-                
+
                 // 创建一个背景线程执行测试
                 std::thread::spawn(move || {
                     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -177,11 +202,11 @@ impl AIConfigurationUI {
                             Err("无法获取 AI 处理器锁".to_string())
                         }
                     });
-                    
+
                     // 发送结果到主线程
                     let _ = tx.send(result);
                 });
-                
+
                 // 尝试立即接收结果（非阻塞）
                 match rx.try_recv() {
                     Ok(Ok(success_msg)) => {
@@ -193,7 +218,7 @@ impl AIConfigurationUI {
                     Err(_) => {
                         // 如果没有立即接收到结果，设置一个等待状态
                         self.status = Some("正在测试连接...".to_string());
-                        
+
                         // 保存接收器供后续 UI 更新使用
                         let ctx = ui.ctx().clone();
                         std::thread::spawn(move || {
@@ -221,7 +246,7 @@ impl AIConfigurationUI {
                 }
             }
         });
-        
+
         // 检查是否有测试结果更新 - 修复 Id 类型
         ui.ctx().data_mut(|data| {
             if let Some(result) = data.get_temp::<String>("ai_test_result".into()) {
@@ -237,13 +262,11 @@ impl AIConfigurationUI {
         ui.heading("重试设置");
         ui.horizontal(|ui| {
             ui.label("重试次数:");
-            ui.add(egui::DragValue::new(&mut self.ai_config.retry.attempts)
-                .range(1..=10));
+            ui.add(egui::DragValue::new(&mut self.ai_config.retry.attempts).range(1..=10));
         });
         ui.horizontal(|ui| {
             ui.label("重试延迟(秒):");
-            ui.add(egui::DragValue::new(&mut self.ai_config.retry.delay)
-                .range(1..=60));
+            ui.add(egui::DragValue::new(&mut self.ai_config.retry.delay).range(1..=60));
         });
     }
 
@@ -258,13 +281,13 @@ impl AIConfigurationUI {
                 // 创建默认配置以获取默认Prompt
                 let default_config = AIConfig::default();
                 self.ai_config.model.prompt = default_config.model.prompt.clone();
-                
+
                 // 标记为已更改，触发自动保存
                 self.status = Some("已重置为默认Prompt".to_string());
                 self.check_and_save_config();
             }
         });
-        
+
         // 使用垂直滚动区域来包裹多行文本编辑器
         egui::ScrollArea::vertical()
             .max_height(400.0) // 限制最大高度，确保在小屏幕上也能看到操作状态
@@ -275,13 +298,13 @@ impl AIConfigurationUI {
                     .desired_rows(20) // 默认显示20行
                     .code_editor() // 使用代码编辑器风格，更适合编辑提示词
                     .font(egui::TextStyle::Monospace); // 使用等宽字体
-                
+
                 if ui.add(text_edit).changed() {
                     // Prompt 内容发生变化时，自动保存配置
                     self.check_and_save_config();
                 }
             });
-        
+
         // 在底部添加一个提示，告诉用户内容会自动保存
         ui.separator();
         ui.small("提示: 内容修改后会自动保存");
