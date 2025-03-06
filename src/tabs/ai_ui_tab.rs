@@ -152,18 +152,17 @@ impl AIConfigurationUI {
 
         ui.horizontal(|ui| {
             ui.label("API密钥:");
-            let mut is_password_visible = false;
             if ui
                 .add(
                     egui::TextEdit::singleline(&mut self.ai_config.model.api_key)
-                        .password(!is_password_visible),
+                        .password(!self.is_password_visible),
                 )
                 .changed()
             {
                 changed = true;
             }
             if ui.button("显示/隐藏").clicked() {
-                is_password_visible = !is_password_visible;
+                self.is_password_visible = !self.is_password_visible;
             }
         });
 
