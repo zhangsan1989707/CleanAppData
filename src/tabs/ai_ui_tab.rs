@@ -135,7 +135,13 @@ impl AIConfigurationUI {
 
     // 添加绘制基本设置的方法
     fn draw_basic_settings(&mut self, ui: &mut egui::Ui) {
-        ui.heading("API设置");
+        ui.horizontal(|ui| {
+            ui.heading("API设置");
+            ui.hyperlink_to(
+                "如何获取 API 密钥?",
+                "https://github.com/TC999/AppDataCleaner/issues/48#issuecomment-2674567816",
+            );
+        });
 
         let mut changed = false;
 
