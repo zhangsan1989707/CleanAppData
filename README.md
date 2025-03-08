@@ -107,6 +107,7 @@ cargo build --release
 - [TC999](https://github.com/TC999) - 作者
 - [ChatGPT](https://chatgpt.com/) - 代码编写
 - [egui](https://github.com/emilk/egui) - GUI 框架
+- [darkmatter2048](https://github.com/darkmatter2048) - CDN 提供
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
 
