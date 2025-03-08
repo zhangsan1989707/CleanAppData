@@ -26,7 +26,7 @@
 ### 📦下载exe文件
 - [发行版](https://github.com/TC999/AppDataCleaner/releases/latest)
 - [CI 构建](https://github.com/TC999/AppDataCleaner/actions/workflows/ci.yml)
-- [Windows Cleaner（内置）](https://github.com/darkmatter2048/WindowsCleaner)
+- [Windows Cleaner（内置，版本手动更新）](https://github.com/darkmatter2048/WindowsCleaner)
 
 以上两种方法二选一，下载后直接解压运行即可。
 
