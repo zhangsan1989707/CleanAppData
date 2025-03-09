@@ -1,4 +1,4 @@
-mod about; // 关于界面
+// mod about; // 关于界面
 mod confirmation; // 确认删除模块
 mod delete; // 引入删除模块
 mod ignore; // 引入忽略模块
@@ -9,7 +9,8 @@ mod scanner; // 引入扫盘模块
 mod ui; // 引入 ui 模块
 mod utils; // 文件夹大小计算模块
 mod yaml_loader; // 文件描述
-pub mod ai_config;  // 只需要保留这一行，使用 pub 使其可以被其他模块访问
+pub mod ai_config;  // 使用 pub 使其可以被其他模块访问
+pub mod tabs;  // 添加tabs模块，使其可以被其他模块访问
 
 use ui::AppDataCleaner;
 

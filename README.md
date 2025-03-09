@@ -26,6 +26,7 @@
 ### 📦下载exe文件
 - [发行版](https://github.com/TC999/AppDataCleaner/releases/latest)
 - [CI 构建](https://github.com/TC999/AppDataCleaner/actions/workflows/ci.yml)
+- [Windows Cleaner（内置，版本手动更新）](https://github.com/darkmatter2048/WindowsCleaner)
 
 以上两种方法二选一，下载后直接解压运行即可。
 
@@ -87,7 +88,7 @@ cargo build --release
 - [ ] 优化界面
 - [ ] 优化代码
 - [ ] 添加软件图标
-- [ ] 项目网站(使用 github pages 实现)
+- [x] 项目网站(使用 github pages 实现)
 - [ ] 其他……
 
 或者前往[这个讨论](https://github.com/TC999/AppDataCleaner/discussions/7)查看更多待办事项。
@@ -106,6 +107,7 @@ cargo build --release
 - [TC999](https://github.com/TC999) - 作者
 - [ChatGPT](https://chatgpt.com/) - 代码编写
 - [egui](https://github.com/emilk/egui) - GUI 框架
+- [darkmatter2048](https://github.com/darkmatter2048) - CDN 提供
 
 ### 所有贡献者
 
