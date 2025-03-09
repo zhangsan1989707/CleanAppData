@@ -108,6 +108,11 @@ cargo build --release
 - [ChatGPT](https://chatgpt.com/) - 代码编写
 - [egui](https://github.com/emilk/egui) - GUI 框架
 - [darkmatter2048](https://github.com/darkmatter2048) - CDN 提供
+
+### 所有贡献者
+
+[![贡献者](https://contrib.rocks/image?repo=TC999/AppDataCleaner)](https://github.com/TC999/AppDataCleaner/graphs/contributors)
+
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
 
