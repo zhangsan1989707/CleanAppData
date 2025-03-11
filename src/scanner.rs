@@ -1,3 +1,4 @@
+use std::env;
 use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -13,9 +14,20 @@ pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
 
     // 根据 folder_type 确定要扫描的目录
     let appdata_dir = match folder_type {
-        "Roaming" => dirs::data_dir(),
-        "Local" => dirs::cache_dir(),
-        "LocalLow" => Some(PathBuf::from("C:/Users/Default/AppData/LocalLow")), // 手动设置路径
+        "Roaming" => dirs::data_dir(), // Roaming 目录（跨设备同步的配置）
+        "Local" => dirs::cache_dir(),  // Local 目录（本机应用数据）
+        "LocalLow" => {
+            // 通过 APPDATA 环境变量推导路径
+            env::var("APPDATA").ok().and_then(|apdata| {
+                let appdata_path = PathBuf::from(apdata);
+                // 获取上级目录（即 AppData 文件夹）
+                appdata_path
+                    .parent()
+                    .map(|appdata_dir| appdata_dir.join("LocalLow"))
+            })
+        }
+
+        // 未知类型返回 None
         _ => None,
     };
 
