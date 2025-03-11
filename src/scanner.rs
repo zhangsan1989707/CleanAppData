@@ -14,8 +14,8 @@ pub fn scan_appdata(tx: Sender<(String, u64)>, folder_type: &str) {
 
     // 根据 folder_type 确定要扫描的目录
     let appdata_dir = match folder_type {
-        "Roaming" => dirs::data_dir(),
-        "Local" => dirs::cache_dir(),
+        "Roaming" => dirs::data_dir(), // Roaming 目录（跨设备同步的配置）
+        "Local" => dirs::cache_dir(),  // Local 目录（本机应用数据）
         "LocalLow" => {
             // 通过 APPDATA 环境变量推导路径
             env::var("APPDATA").ok().and_then(|apdata| {
