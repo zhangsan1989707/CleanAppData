@@ -113,6 +113,10 @@ cargo build --release
 
 [![贡献者](https://contrib.rocks/image?repo=TC999/AppDataCleaner)](https://github.com/TC999/AppDataCleaner/graphs/contributors)
 
+## 🤝 支持开发者
+
+如果您喜欢这个项目，可以通过以下方式赞助我：[软件官网](http://adc.dyblog.online/donate.html)
+
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
 
