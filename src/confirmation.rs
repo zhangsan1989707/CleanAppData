@@ -1,9 +1,15 @@
-use eframe::egui;
-use crate::logger;
 use crate::delete;
+use crate::logger;
+use crate::stats::Stats;
+use crate::stats_logger::StatsLogger;
 use crate::utils;
+use eframe::egui;
 
-pub fn show_confirmation(ctx: &egui::Context, message: &str, status: &Option<String>) -> Option<bool> {
+pub fn show_confirmation(
+    ctx: &egui::Context,
+    message: &str,
+    status: &Option<String>,
+) -> Option<bool> {
     let mut result = None;
 
     egui::Window::new("确认操作")
@@ -43,6 +49,8 @@ pub fn handle_delete_confirmation(
     selected_appdata_folder: &str,
     status: &mut Option<String>,
     folder_data: &mut Vec<(String, u64)>, // 新增参数
+    stats: &mut Stats,                    // 新增参数
+    stats_logger: &StatsLogger,           // 新增参数
 ) {
     if let Some((folder_name, _)) = confirm_delete.clone() {
         let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
@@ -51,7 +59,8 @@ pub fn handle_delete_confirmation(
             if confirm {
                 if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder) {
                     let full_path = base_path.join(&folder_name);
-                    match delete::delete_folder(&full_path) {
+                    match delete::delete_folder(&full_path, stats, stats_logger) {
+                        // 传递 stats 和 stats_logger
                         Ok(_) => {
                             // 检查文件夹是否已成功删除
                             if !full_path.exists() {
@@ -66,15 +75,13 @@ pub fn handle_delete_confirmation(
                         Err(err) => {
                             eprintln!("Error: {}", err);
                             logger::log_error(&format!("Error: {}", err));
-                            *status = Some(format!("删除文件夹 {} 时发生错误: {}", folder_name, err));
+                            *status =
+                                Some(format!("删除文件夹 {} 时发生错误: {}", folder_name, err));
                         }
                     }
                 } else {
                     eprintln!("无法获取 {} 文件夹路径", selected_appdata_folder);
-                    logger::log_error(&format!(
-                        "无法获取 {} 文件夹路径",
-                        selected_appdata_folder
-                    ));
+                    logger::log_error(&format!("无法获取 {} 文件夹路径", selected_appdata_folder));
                     *status = Some(format!("无法获取 {} 文件夹路径", selected_appdata_folder));
                 }
             } else {
