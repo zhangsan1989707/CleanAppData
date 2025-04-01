@@ -215,8 +215,8 @@ impl ClearTabState {
             self.stats.cleaned_folders_count
         ));
         ui.label(format!(
-            "总清理大小: {} 字节",
-            self.stats.total_cleaned_size
+            "总清理大小: {}",
+            utils::format_size(self.stats.total_cleaned_size)
         ));
     }
 
