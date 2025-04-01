@@ -8,6 +8,7 @@ mod move_module; // 移动文件夹，使用 mklink 指令
 mod open; // 调用资源管理器打开文件夹
 mod scanner; // 引入扫盘模块
 mod stats; // 引入统计模块
+mod stats_logger; // 引入统计日志模块
 pub mod tabs;
 mod ui; // 引入 ui 模块
 mod utils; // 文件夹大小计算模块

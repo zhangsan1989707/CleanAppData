@@ -1,9 +1,11 @@
 use crate::stats::Stats;
+use crate::stats_logger::StatsLogger;
 use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
 use crate::{confirmation, ignore, logger, move_module, open, scanner, utils};
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
-use std::sync::mpsc::{Receiver, Sender}; // 引入 Stats 模块
+use std::path::PathBuf;
+use std::sync::mpsc::{Receiver, Sender}; // 引入 StatsLogger 模块
 
 pub struct ClearTabState {
     // 基础字段
@@ -36,6 +38,7 @@ pub struct ClearTabState {
 
     // 新增字段
     pub stats: Stats,
+    pub stats_logger: StatsLogger, // 新增字段
 }
 
 impl Default for ClearTabState {
@@ -73,6 +76,7 @@ impl Default for ClearTabState {
 
             // 新增字段初始化
             stats: Stats::new(),
+            stats_logger: StatsLogger::new(PathBuf::from("stats.log")), // 初始化 StatsLogger
         }
     }
 }
@@ -204,6 +208,16 @@ impl ClearTabState {
 
         // 显示总大小
         ui.label(format!("总大小: {}", utils::format_size(self.total_size)));
+
+        // 显示总清理数和总大小
+        ui.label(format!(
+            "已清理文件夹数量: {}",
+            self.stats.cleaned_folders_count
+        ));
+        ui.label(format!(
+            "总清理大小: {} 字节",
+            self.stats.total_cleaned_size
+        ));
     }
 
     pub fn show_folder_grid(&mut self, ui: &mut egui::Ui) {
@@ -258,7 +272,8 @@ impl ClearTabState {
             &self.selected_appdata_folder,
             &mut self.status,
             &mut self.folder_data,
-            &mut self.stats, // 传递 stats 参数
+            &mut self.stats,    // 传递 stats 参数
+            &self.stats_logger, // 传递 stats_logger 参数
         );
 
         // 扫描按钮和生成描述按钮放在一起

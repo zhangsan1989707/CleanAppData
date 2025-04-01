@@ -1,9 +1,14 @@
 use crate::logger;
-use crate::stats::Stats; // 引入 Stats 模块
+use crate::stats::Stats;
+use crate::stats_logger::StatsLogger; // 引入 StatsLogger 模块
 use std::fs;
 use std::path::PathBuf;
 
-pub fn delete_folder(folder_path: &PathBuf, stats: &mut Stats) -> Result<(), String> {
+pub fn delete_folder(
+    folder_path: &PathBuf,
+    stats: &mut Stats,
+    stats_logger: &StatsLogger,
+) -> Result<(), String> {
     let folder_path_str = folder_path.to_string_lossy();
     println!("尝试删除文件夹: {}", folder_path_str);
     logger::log_info(&format!("尝试删除文件夹: {}", folder_path_str));
@@ -24,6 +29,7 @@ pub fn delete_folder(folder_path: &PathBuf, stats: &mut Stats) -> Result<(), Str
             error_msg
         })?;
         stats.update_stats(folder_size); // 更新统计数据
+        stats_logger.log_stats(stats.cleaned_folders_count, stats.total_cleaned_size); // 记录统计数据到文件
         Ok(())
     } else {
         let error_msg = format!("路径不是目录: {}", folder_path_str);
