@@ -6,7 +6,7 @@
  [![GitHub forks][forks-image]][forks-url]
  [![Github Downloads][download-image]][download-url]
  [![license][license-image]][license-url]
- [![repo-size][repo-size-image]]
+ ![repo-size][repo-size-image]
  <!--[![hits][hits-image]][hits-url1]-->
 
 完全开源免费的清理 Appdata 的小工具！完全使用 ChatGPT 生成！
