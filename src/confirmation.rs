@@ -1,8 +1,46 @@
 use crate::delete;
 use crate::logger;
-use crate::stats::Stats; // 引入 Stats 模块
+use crate::stats::Stats;
 use crate::utils;
 use eframe::egui;
+
+pub fn show_confirmation(
+    ctx: &egui::Context,
+    message: &str,
+    status: &Option<String>,
+) -> Option<bool> {
+    let mut result = None;
+
+    egui::Window::new("确认操作")
+        .collapsible(false)
+        .resizable(false)
+        .show(ctx, |ui| {
+            ui.label(message);
+
+            // 显示状态信息
+            if let Some(status_message) = status {
+                ui.label(status_message);
+            }
+
+            ui.horizontal(|ui| {
+                if status.is_some() {
+                    if ui.button("关闭").clicked() {
+                        result = Some(false);
+                    }
+                } else {
+                    if ui.button("确认").clicked() {
+                        result = Some(true);
+                    }
+                    if ui.button("取消").clicked() {
+                        result = Some(false);
+                        println!("用户取消操作");
+                    }
+                }
+            });
+        });
+
+    result
+}
 
 pub fn handle_delete_confirmation(
     ctx: &egui::Context,

@@ -1,8 +1,9 @@
-use crate::{confirmation, ignore, logger, move_module, open, scanner, utils};
+use crate::stats::Stats;
 use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
+use crate::{confirmation, ignore, logger, move_module, open, scanner, utils};
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender}; // 引入 Stats 模块
 
 pub struct ClearTabState {
     // 基础字段
@@ -17,9 +18,9 @@ pub struct ClearTabState {
     pub confirm_delete: Option<(String, bool)>,
     pub status: Option<String>,
 
-    // 排序相关字段 
-    pub sort_criterion: Option<String>,  // 排序标准:"name"或"size"
-    pub sort_order: Option<String>,      // 排序顺序:"asc"或"desc"
+    // 排序相关字段
+    pub sort_criterion: Option<String>, // 排序标准:"name"或"size"
+    pub sort_order: Option<String>,     // 排序顺序:"asc"或"desc"
 
     // 文件夹描述相关
     pub folder_descriptions: Option<FolderDescriptions>,
@@ -32,6 +33,9 @@ pub struct ClearTabState {
     // 生成描述的回调函数
     generate_description_callback: Option<Box<dyn Fn(&str) + Send>>,
     generate_all_descriptions_callback: Option<Box<dyn Fn(&Vec<(String, u64)>, &str) + Send>>,
+
+    // 新增字段
+    pub stats: Stats,
 }
 
 impl Default for ClearTabState {
@@ -66,9 +70,14 @@ impl Default for ClearTabState {
             // 回调函数初始化为 None
             generate_description_callback: None,
             generate_all_descriptions_callback: None,
+
+            // 新增字段初始化
+            stats: Stats::new(),
         }
     }
 }
+
+// 其他代码保持不变
 
 impl ClearTabState {
     pub fn new() -> Self {
@@ -93,9 +102,10 @@ impl ClearTabState {
     fn handle_folder_operations(&mut self, ui: &mut egui::Ui, folder: &str, size: u64) {
         // 显示文件夹名称和大小
         if self.ignored_folders.contains(folder) {
-            ui.add_enabled(false, egui::Label::new(
-                egui::RichText::new(folder).color(egui::Color32::GRAY),
-            ));
+            ui.add_enabled(
+                false,
+                egui::Label::new(egui::RichText::new(folder).color(egui::Color32::GRAY)),
+            );
         } else {
             ui.label(folder);
         }
@@ -103,15 +113,17 @@ impl ClearTabState {
 
         // 显示描述
         self.show_folder_description(ui, folder);
-        
+
         // 显示操作按钮
         self.show_folder_actions(ui, folder);
     }
 
     fn show_folder_description(&self, ui: &mut egui::Ui, folder: &str) {
-        let description = self.folder_descriptions.as_ref()
+        let description = self
+            .folder_descriptions
+            .as_ref()
             .and_then(|desc| desc.get_description(folder, &self.selected_appdata_folder));
-        
+
         match description {
             Some(desc) => ui.label(desc),
             None => ui.label("无描述"),
@@ -120,7 +132,7 @@ impl ClearTabState {
 
     fn show_folder_actions(&mut self, ui: &mut egui::Ui, folder: &str) {
         let is_ignored = self.ignored_folders.contains(folder);
-        
+
         if !is_ignored {
             if ui.button("彻底删除").clicked() {
                 self.confirm_delete = Some((folder.to_string(), false));
@@ -223,7 +235,7 @@ impl ClearTabState {
 
             // 创建一个临时向量来存储需要处理的数据
             let folder_data = self.folder_data.clone();
-            
+
             // 使用临时数据进行遍历
             for (folder, size) in folder_data {
                 self.handle_folder_operations(ui, &folder, size);
@@ -235,17 +247,18 @@ impl ClearTabState {
     pub fn show(&mut self, ui: &mut egui::Ui) {
         // 初始化if未加载folder descriptions
         if self.folder_descriptions.is_none() {
-            self.folder_descriptions = 
+            self.folder_descriptions =
                 load_folder_descriptions("folders_description.yaml", &mut self.yaml_error_logged);
         }
 
         // 删除确认弹窗逻辑
         confirmation::handle_delete_confirmation(
-            ui.ctx(),  // 使用当前上下文，而不是创建新的
+            ui.ctx(), // 使用当前上下文，而不是创建新的
             &mut self.confirm_delete,
             &self.selected_appdata_folder,
             &mut self.status,
             &mut self.folder_data,
+            &mut self.stats, // 传递 stats 参数
         );
 
         // 扫描按钮和生成描述按钮放在一起
@@ -260,7 +273,7 @@ impl ClearTabState {
 
                 scanner::scan_appdata(tx, &folder_type);
             }
-            
+
             // 一键生成所有描述按钮
             if ui.button("一键生成所有描述").clicked() {
                 if let Some(callback) = &self.generate_all_descriptions_callback {
@@ -290,7 +303,7 @@ impl ClearTabState {
 
         // 排序控件
         self.show_sort_controls(ui);
-        
+
         // 文件夹列表
         ScrollArea::vertical().show(ui, |ui| {
             self.show_folder_grid(ui);
@@ -307,7 +320,7 @@ impl ClearTabState {
 
     // 更新文件夹描述
     pub fn update_folder_descriptions(&mut self) {
-        self.folder_descriptions = 
+        self.folder_descriptions =
             load_folder_descriptions("folders_description.yaml", &mut self.yaml_error_logged);
     }
 }
