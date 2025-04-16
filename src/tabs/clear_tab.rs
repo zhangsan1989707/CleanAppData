@@ -1,7 +1,7 @@
 use crate::stats::Stats;
 use crate::stats_logger::StatsLogger;
 use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
-use crate::{confirmation, ignore, logger, move_module, open, scanner, utils};
+use crate::{confirmation, delete, ignore, logger, move_module, open, scanner, utils};
 use eframe::egui::{self, Grid, ScrollArea};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -35,6 +35,9 @@ pub struct ClearTabState {
     // 生成描述的回调函数
     generate_description_callback: Option<Box<dyn Fn(&str) + Send>>,
     generate_all_descriptions_callback: Option<Box<dyn Fn(&Vec<(String, u64)>, &str) + Send>>,
+
+    // 多选操作
+    pub selected_folders: HashSet<String>, // 新增字段，存储选中的文件夹
 
     // 新增字段
     pub stats: Stats,
@@ -74,6 +77,9 @@ impl Default for ClearTabState {
             generate_description_callback: None,
             generate_all_descriptions_callback: None,
 
+            // 多选操作初始化
+            selected_folders: HashSet::new(), // 初始化为空集合
+
             // 新增字段初始化
             stats: Stats::new(),
             stats_logger: StatsLogger::new(PathBuf::from("stats.log")), // 初始化 StatsLogger
@@ -104,6 +110,15 @@ impl ClearTabState {
 
     // 抽取文件夹操作逻辑到单独的方法
     fn handle_folder_operations(&mut self, ui: &mut egui::Ui, folder: &str, size: u64) {
+        // 显示复选框，用于多选操作
+        let mut is_selected = self.selected_folders.contains(folder);
+        if ui.checkbox(&mut is_selected, "").clicked() {
+            if is_selected {
+                self.selected_folders.insert(folder.to_string());
+            } else {
+                self.selected_folders.remove(folder);
+            }
+        }
         // 显示文件夹名称和大小
         if self.ignored_folders.contains(folder) {
             ui.add_enabled(
@@ -298,6 +313,9 @@ impl ClearTabState {
             }
         });
 
+        // 添加批量操作按钮
+        self.show_bulk_actions(ui);
+
         // 接收扫描结果
         if let Some(rx) = &self.rx {
             while let Ok((folder, size)) = rx.try_recv() {
@@ -322,6 +340,45 @@ impl ClearTabState {
         // 文件夹列表
         ScrollArea::vertical().show(ui, |ui| {
             self.show_folder_grid(ui);
+        });
+    }
+
+    pub fn show_bulk_actions(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("批量删除").clicked() {
+                //// 将选中的文件夹存储在临时变量中以供确认
+                //let folders_to_delete: Vec<String> =
+                //    self.selected_folders.iter().cloned().collect();
+                //if !folders_to_delete.is_empty() {
+                //    self.confirm_delete = Some(("BULK_DELETE".to_string(), true));
+                //    // 您需要修改确认处理函数以支持批量操作
+                //    return;
+                //}
+                for folder in &self.selected_folders {
+                    if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
+                        let full_path = base_path.join(folder);
+                        if let Err(err) =
+                            delete::delete_folder(&full_path, &mut self.stats, &self.stats_logger)
+                        {
+                            logger::log_error(&format!("批量删除失败: {}", err));
+                        } else {
+                            logger::log_info(&format!("已删除文件夹: {}", folder));
+                        }
+                    }
+                }
+                self.folder_data
+                    .retain(|(folder, _)| !self.selected_folders.contains(folder));
+                self.selected_folders.clear();
+            }
+
+            if ui.button("批量忽略").clicked() {
+                for folder in &self.selected_folders {
+                    self.ignored_folders.insert(folder.to_string());
+                    logger::log_info(&format!("文件夹 '{}' 已被忽略", folder));
+                }
+                ignore::save_ignored_folders(&self.ignored_folders);
+                self.selected_folders.clear();
+            }
         });
     }
 
