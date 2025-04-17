@@ -52,41 +52,51 @@ pub fn handle_delete_confirmation(
     stats: &mut Stats,                    // 新增参数
     stats_logger: &StatsLogger,           // 新增参数
 ) {
-    if let Some((folder_name, _)) = confirm_delete.clone() {
-        let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
-        logger::log_info(&message);
+    if let Some((folder_name, is_bulk)) = confirm_delete.clone() {
+        let message = if is_bulk && folder_name == "BULK_DELETE" {
+            "确定要批量删除选中的文件夹吗？".to_string()
+        } else {
+            format!("确定要彻底删除文件夹 {} 吗？", folder_name)
+        };
+
         if let Some(confirm) = show_confirmation(ctx, &message, status) {
             if confirm {
-                if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder) {
-                    let full_path = base_path.join(&folder_name);
-                    match delete::delete_folder(&full_path, stats, stats_logger) {
-                        // 传递 stats 和 stats_logger
-                        Ok(_) => {
-                            // 检查文件夹是否已成功删除
-                            if !full_path.exists() {
-                                *status = Some(format!("文件夹 {} 已成功删除", folder_name));
-                                println!("文件夹 {} 已成功删除", folder_name);
-                                // 从 folder_data 中移除对应项目
-                                folder_data.retain(|(name, _)| name != &folder_name);
+                if is_bulk && folder_name == "BULK_DELETE" {
+                    // 执行批量删除逻辑
+                    let selected_folders: Vec<String> = folder_data
+                        .iter()
+                        .filter(|(folder, _)| confirm_delete.as_ref().map_or(false, |c| c.1))
+                        .map(|(folder, _)| folder.clone())
+                        .collect();
+
+                    for folder in &selected_folders {
+                        if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder) {
+                            let full_path = base_path.join(folder);
+                            if let Err(err) = delete::delete_folder(&full_path, stats, stats_logger)
+                            {
+                                logger::log_error(&format!("批量删除失败: {}", err));
                             } else {
-                                *status = Some(format!("文件夹 {} 删除失败", folder_name));
+                                logger::log_info(&format!("已删除文件夹: {}", folder));
                             }
                         }
-                        Err(err) => {
-                            eprintln!("Error: {}", err);
-                            logger::log_error(&format!("Error: {}", err));
-                            *status =
-                                Some(format!("删除文件夹 {} 时发生错误: {}", folder_name, err));
-                        }
                     }
+                    folder_data.retain(|(folder, _)| !selected_folders.contains(folder));
+                    *status = Some("批量删除完成".to_string());
                 } else {
-                    eprintln!("无法获取 {} 文件夹路径", selected_appdata_folder);
-                    logger::log_error(&format!("无法获取 {} 文件夹路径", selected_appdata_folder));
-                    *status = Some(format!("无法获取 {} 文件夹路径", selected_appdata_folder));
+                    // 单个删除逻辑
+                    if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder) {
+                        let full_path = base_path.join(&folder_name);
+                        if let Err(err) = delete::delete_folder(&full_path, stats, stats_logger) {
+                            logger::log_error(&format!("删除失败: {}", err));
+                        } else {
+                            logger::log_info(&format!("已删除文件夹: {}", folder_name));
+                            folder_data.retain(|(folder, _)| folder != &folder_name);
+                        }
+                        *status = Some(format!("文件夹 {} 已成功删除", folder_name));
+                    }
                 }
-            } else {
-                *confirm_delete = None; // 用户选择关闭或取消
             }
+            *confirm_delete = None; // 重置确认状态
         }
     }
 }
