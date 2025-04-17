@@ -56,13 +56,14 @@ pub fn handle_delete_confirmation(
         if let Some(confirm) = show_confirmation(ctx, &message, status) {
             if confirm {
                 if is_bulk && folder_name == "BULK_DELETE" {
-                    // 执行批量删除逻辑
-                    let selected_folders: Vec<String> = folder_data
-                        .iter()
-                        .map(|(folder, _)| folder.clone())
-                        .collect();
+                    // 执行批量删除逻辑，仅针对 selected_folders
+                    for folder in &self.selected_folders {
+                        if !self.selected_folders.contains(folder) {
+                            // 防护检查，确保文件夹已被选中
+                            logger::log_error(&format!("文件夹 '{}' 未被选中，跳过删除", folder));
+                            continue;
+                        }
 
-                    for folder in &selected_folders {
                         if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder) {
                             let full_path = base_path.join(folder);
                             if let Err(err) = delete::delete_folder(&full_path, stats, stats_logger)
@@ -73,7 +74,8 @@ pub fn handle_delete_confirmation(
                             }
                         }
                     }
-                    folder_data.retain(|(folder, _)| !selected_folders.contains(folder));
+                    folder_data.retain(|(folder, _)| !self.selected_folders.contains(folder)); // 从数据中移除已删除的文件夹
+                    self.selected_folders.clear(); // 清空选定文件夹列表
                     *status = Some("批量删除完成".to_string());
                 } else {
                     // 单个删除逻辑
