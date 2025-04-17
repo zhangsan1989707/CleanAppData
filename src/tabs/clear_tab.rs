@@ -418,7 +418,7 @@ impl ClearTabState {
 
                 if !self.selected_folders.is_empty() {
                     self.confirm_delete = Some(("BULK_DELETE".to_string(), true));
-                // 设置批量删除标志
+                    self.status = None; // 确保状态信息不影响按钮显示
                 } else {
                     self.status = Some("未选择任何文件夹，无法执行批量删除".to_string());
                 }

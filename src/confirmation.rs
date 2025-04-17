@@ -24,18 +24,12 @@ pub fn show_confirmation(
             }
 
             ui.horizontal(|ui| {
-                if status.is_some() {
-                    if ui.button("关闭").clicked() {
-                        result = Some(false);
-                    }
-                } else {
-                    if ui.button("确认").clicked() {
-                        result = Some(true);
-                    }
-                    if ui.button("取消").clicked() {
-                        result = Some(false);
-                        println!("用户取消操作");
-                    }
+                if ui.button("确认").clicked() {
+                    result = Some(true);
+                }
+                if ui.button("取消").clicked() {
+                    result = Some(false);
+                    println!("用户取消操作");
                 }
             });
         });
@@ -65,7 +59,6 @@ pub fn handle_delete_confirmation(
                     // 执行批量删除逻辑
                     let selected_folders: Vec<String> = folder_data
                         .iter()
-                        .filter(|(folder, _)| confirm_delete.as_ref().map_or(false, |c| c.1))
                         .map(|(folder, _)| folder.clone())
                         .collect();
 
