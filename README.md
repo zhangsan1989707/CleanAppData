@@ -121,6 +121,8 @@ cargo build --release
 
 如果您喜欢这个项目，可以通过以下方式赞助我：[软件官网](http://adc.dyblog.online/donate.html)
 
+![微信赞助](./readme/wechat.png)
+
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
 
