@@ -344,13 +344,14 @@ impl ClearTabState {
 
         // 删除确认弹窗逻辑
         confirmation::handle_delete_confirmation(
-            ui.ctx(), // 使用当前上下文，而不是创建新的
-            &mut self.confirm_delete,
-            &self.selected_appdata_folder,
-            &mut self.status,
-            &mut self.folder_data,
-            &mut self.stats,    // 传递 stats 参数
-            &self.stats_logger, // 传递 stats_logger 参数
+            ui.ctx(),                      // 传递上下文
+            &mut self.confirm_delete,      // 传递确认删除状态
+            &self.selected_appdata_folder, // 传递选中的 AppData 文件夹
+            &mut self.status,              // 传递状态
+            &mut self.folder_data,         // 传递文件夹数据
+            &mut self.selected_folders,    // 传递选中的文件夹集合
+            &mut self.stats,               // 传递统计数据
+            &self.stats_logger,            // 传递统计日志记录器
         );
 
         // 扫描按钮和生成描述按钮放在一起
