@@ -1,3 +1,4 @@
+use crate::confirmation::show_confirmation;
 use crate::stats::Stats;
 use crate::stats_logger::StatsLogger;
 use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
@@ -90,6 +91,35 @@ impl Default for ClearTabState {
 // 其他代码保持不变
 
 impl ClearTabState {
+    // 新增：实现 handle_folder_operations 方法
+    fn handle_folder_operations(&mut self, ui: &mut egui::Ui, folder: &str, size: u64) {
+        // 显示复选框，用于多选操作
+        let mut is_selected = self.selected_folders.contains(folder);
+        if ui.checkbox(&mut is_selected, "").clicked() {
+            if is_selected {
+                self.selected_folders.insert(folder.to_string());
+            } else {
+                self.selected_folders.remove(folder);
+            }
+        }
+
+        // 显示文件夹名称和大小
+        if self.ignored_folders.contains(folder) {
+            ui.add_enabled(
+                false,
+                egui::Label::new(egui::RichText::new(folder).color(egui::Color32::GRAY)),
+            );
+        } else {
+            ui.label(folder);
+        }
+        ui.label(utils::format_size(size));
+
+        // 显示描述
+        self.show_folder_description(ui, folder);
+
+        // 显示操作按钮
+        self.show_folder_actions(ui, folder);
+    }
     pub fn new() -> Self {
         Self::default()
     }
@@ -109,32 +139,64 @@ impl ClearTabState {
     }
 
     // 抽取文件夹操作逻辑到单独的方法
-    fn handle_folder_operations(&mut self, ui: &mut egui::Ui, folder: &str, size: u64) {
-        // 显示复选框，用于多选操作
-        let mut is_selected = self.selected_folders.contains(folder);
-        if ui.checkbox(&mut is_selected, "").clicked() {
-            if is_selected {
-                self.selected_folders.insert(folder.to_string());
+    pub fn handle_delete_confirmation(
+        ctx: &egui::Context,
+        confirm_delete: &mut Option<(String, bool)>,
+        selected_appdata_folder: &str,
+        status: &mut Option<String>,
+        folder_data: &mut Vec<(String, u64)>, // 新增参数
+        stats: &mut Stats,                    // 新增参数
+        stats_logger: &StatsLogger,           // 新增参数
+    ) {
+        if let Some((folder_name, is_bulk)) = confirm_delete.clone() {
+            if is_bulk && folder_name == "BULK_DELETE" {
+                let message = "确定要批量删除选中的文件夹吗？";
+                if let Some(confirm) = show_confirmation(ctx, message, status) {
+                    if confirm {
+                        let selected_folders: Vec<String> = folder_data
+                            .iter()
+                            .filter(|(folder, _)| confirm_delete.as_ref().map_or(false, |c| c.1))
+                            .map(|(folder, _)| folder.clone())
+                            .collect();
+
+                        for folder in &selected_folders {
+                            if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder)
+                            {
+                                let full_path = base_path.join(&folder);
+                                if let Err(err) =
+                                    delete::delete_folder(&full_path, stats, stats_logger)
+                                {
+                                    logger::log_error(&format!("批量删除失败: {}", err));
+                                } else {
+                                    logger::log_info(&format!("已删除文件夹: {}", folder));
+                                }
+                            }
+                        }
+                        folder_data.retain(|(folder, _)| !selected_folders.contains(folder));
+                        *status = Some("批量删除完成".to_string());
+                    }
+                    *confirm_delete = None;
+                }
             } else {
-                self.selected_folders.remove(folder);
+                let message = format!("确定要彻底删除文件夹 {} 吗？", folder_name);
+                if let Some(confirm) = show_confirmation(ctx, &message, status) {
+                    if confirm {
+                        if let Some(base_path) = utils::get_appdata_dir(selected_appdata_folder) {
+                            let full_path = base_path.join(&folder_name);
+                            if let Err(err) = delete::delete_folder(&full_path, stats, stats_logger)
+                            {
+                                logger::log_error(&format!("删除失败: {}", err));
+                            } else {
+                                logger::log_info(&format!("已删除文件夹: {}", folder_name));
+                                folder_data.retain(|(folder, _)| folder != &folder_name);
+                            }
+                            *status = Some(format!("文件夹 {} 已成功删除", folder_name));
+                        }
+                    }
+                    *confirm_delete = None;
+                }
             }
         }
-        // 显示文件夹名称和大小
-        if self.ignored_folders.contains(folder) {
-            ui.add_enabled(
-                false,
-                egui::Label::new(egui::RichText::new(folder).color(egui::Color32::GRAY)),
-            );
-        } else {
-            ui.label(folder);
-        }
-        ui.label(utils::format_size(size));
-
-        // 显示描述
-        self.show_folder_description(ui, folder);
-
-        // 显示操作按钮
-        self.show_folder_actions(ui, folder);
     }
 
     fn show_folder_description(&self, ui: &mut egui::Ui, folder: &str) {
@@ -282,13 +344,14 @@ impl ClearTabState {
 
         // 删除确认弹窗逻辑
         confirmation::handle_delete_confirmation(
-            ui.ctx(), // 使用当前上下文，而不是创建新的
-            &mut self.confirm_delete,
-            &self.selected_appdata_folder,
-            &mut self.status,
-            &mut self.folder_data,
-            &mut self.stats,    // 传递 stats 参数
-            &self.stats_logger, // 传递 stats_logger 参数
+            ui.ctx(),                      // 传递上下文
+            &mut self.confirm_delete,      // 传递确认删除状态
+            &self.selected_appdata_folder, // 传递选中的 AppData 文件夹
+            &mut self.status,              // 传递状态
+            &mut self.folder_data,         // 传递文件夹数据
+            &mut self.selected_folders,    // 传递选中的文件夹集合
+            &mut self.stats,               // 传递统计数据
+            &self.stats_logger,            // 传递统计日志记录器
         );
 
         // 扫描按钮和生成描述按钮放在一起
@@ -346,29 +409,20 @@ impl ClearTabState {
     pub fn show_bulk_actions(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("批量删除").clicked() {
-                //// 将选中的文件夹存储在临时变量中以供确认
-                //let folders_to_delete: Vec<String> =
-                //    self.selected_folders.iter().cloned().collect();
-                //if !folders_to_delete.is_empty() {
-                //    self.confirm_delete = Some(("BULK_DELETE".to_string(), true));
-                //    // 您需要修改确认处理函数以支持批量操作
-                //    return;
-                //}
                 for folder in &self.selected_folders {
-                    if let Some(base_path) = utils::get_appdata_dir(&self.selected_appdata_folder) {
-                        let full_path = base_path.join(folder);
-                        if let Err(err) =
-                            delete::delete_folder(&full_path, &mut self.stats, &self.stats_logger)
-                        {
-                            logger::log_error(&format!("批量删除失败: {}", err));
-                        } else {
-                            logger::log_info(&format!("已删除文件夹: {}", folder));
-                        }
+                    if self.ignored_folders.contains(folder) {
+                        self.status = Some(format!("文件夹 '{}' 在忽略名单中，无法删除", folder));
+                        logger::log_info(&format!("文件夹 '{}' 在忽略名单中，无法删除", folder));
+                        return;
                     }
                 }
-                self.folder_data
-                    .retain(|(folder, _)| !self.selected_folders.contains(folder));
-                self.selected_folders.clear();
+
+                if !self.selected_folders.is_empty() {
+                    self.confirm_delete = Some(("BULK_DELETE".to_string(), true));
+                    self.status = None; // 确保状态信息不影响按钮显示
+                } else {
+                    self.status = Some("未选择任何文件夹，无法执行批量删除".to_string());
+                }
             }
 
             if ui.button("批量忽略").clicked() {
