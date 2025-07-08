@@ -16,6 +16,9 @@ pub struct AppDataCleaner {
     is_logging_enabled: bool,
     previous_logging_state: bool,
 
+    // 主题相关字段
+    dark_mode: bool,                 // 深色模式开关
+
     // 清理标签页状态
     clear_tab: ClearTabState,
 
@@ -103,6 +106,9 @@ impl Default for AppDataCleaner {
             is_logging_enabled: false,
             previous_logging_state: false,
 
+            // 主题相关初始化
+            dark_mode: true,  // 默认使用深色模式
+
             // 清理标签页初始化 
             clear_tab,
 
@@ -158,6 +164,14 @@ impl AppDataCleaner {
                     });
                     // 当前目标文件夹显示
                     ui.label(format!("当前目标: {}", self.clear_tab.selected_appdata_folder));
+                    
+                    ui.separator(); // 分隔符
+                    
+                    // 主题切换按钮
+                    let theme_text = if self.dark_mode { "☀ 浅色" } else { "🌙 深色" };
+                    if ui.button(theme_text).clicked() {
+                        self.dark_mode = !self.dark_mode;
+                    }
                 });
             });
 
@@ -167,6 +181,13 @@ impl AppDataCleaner {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_custom_fonts(ctx);
+        
+        // 设置主题
+        if self.dark_mode {
+            ctx.set_visuals(egui::Visuals::dark());
+        } else {
+            ctx.set_visuals(egui::Visuals::light());
+        }
         
         // 处理日志开关
         if self.is_logging_enabled != self.previous_logging_state {
