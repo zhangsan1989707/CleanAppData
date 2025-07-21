@@ -1,6 +1,6 @@
 [package]
 name = "AppDataCleaner"
-version = "1.0.6-b4"
+version = "1.0.6-b5"
 edition = "2021"
 
 [dependencies]
