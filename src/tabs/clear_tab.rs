@@ -1,4 +1,5 @@
 use crate::confirmation::show_confirmation;
+use crate::database::{Database, get_default_db_path, database_exists};
 use crate::stats::Stats;
 use crate::stats_logger::StatsLogger;
 use crate::yaml_loader::{load_folder_descriptions, FolderDescriptions};
@@ -155,7 +156,7 @@ impl ClearTabState {
                     if confirm {
                         let selected_folders: Vec<String> = folder_data
                             .iter()
-                            .filter(|(folder, _)| confirm_delete.as_ref().map_or(false, |c| c.1))
+                            .filter(|(_folder, _)| confirm_delete.as_ref().map_or(false, |c| c.1))
                             .map(|(folder, _)| folder.clone())
                             .collect();
 
@@ -260,41 +261,77 @@ impl ClearTabState {
     }
 
     pub fn show_sort_controls(&mut self, ui: &mut egui::Ui) {
-        // 添加排序按钮
-        ui.menu_button("排序", |ui| {
-            if ui.button("名称正序").clicked() {
-                self.sort_criterion = Some("name".to_string());
-                self.sort_order = Some("asc".to_string());
-            }
-            if ui.button("大小正序").clicked() {
-                self.sort_criterion = Some("size".to_string());
-                self.sort_order = Some("asc".to_string());
-            }
-            if ui.button("名称倒序").clicked() {
-                self.sort_criterion = Some("name".to_string());
-                self.sort_order = Some("desc".to_string());
-            }
-            if ui.button("大小倒序").clicked() {
-                self.sort_criterion = Some("size".to_string());
-                self.sort_order = Some("desc".to_string());
-            }
+        ui.horizontal(|ui| {
+            // 添加排序按钮
+            ui.menu_button("排序", |ui| {
+                if ui.button("名称正序").clicked() {
+                    self.sort_criterion = Some("name".to_string());
+                    self.sort_order = Some("asc".to_string());
+                }
+                if ui.button("大小正序").clicked() {
+                    self.sort_criterion = Some("size".to_string());
+                    self.sort_order = Some("asc".to_string());
+                }
+                if ui.button("名称倒序").clicked() {
+                    self.sort_criterion = Some("name".to_string());
+                    self.sort_order = Some("desc".to_string());
+                }
+                if ui.button("大小倒序").clicked() {
+                    self.sort_criterion = Some("size".to_string());
+                    self.sort_order = Some("desc".to_string());
+                }
+            });
+            
+            // 数据库状态显示
+            self.show_database_status(ui);
         });
 
         // 计算总大小
         self.total_size = self.folder_data.iter().map(|(_, size)| size).sum();
 
-        // 显示总大小
-        ui.label(format!("总大小: {}", utils::format_size(self.total_size)));
+        ui.horizontal(|ui| {
+            // 显示总大小
+            ui.label(format!("总大小: {}", utils::format_size(self.total_size)));
 
-        // 显示总清理数和总大小
-        ui.label(format!(
-            "已清理文件夹数量: {}",
-            self.stats.cleaned_folders_count
-        ));
-        ui.label(format!(
-            "总清理大小: {}",
-            utils::format_size(self.stats.total_cleaned_size)
-        ));
+            // 显示总清理数和总大小
+            ui.label(format!(
+                "已清理文件夹数量: {}",
+                self.stats.cleaned_folders_count
+            ));
+            ui.label(format!(
+                "总清理大小: {}",
+                utils::format_size(self.stats.total_cleaned_size)
+            ));
+        });
+    }
+
+    fn show_database_status(&self, ui: &mut egui::Ui) {
+        let db_path = get_default_db_path();
+        
+        if database_exists(&db_path) {
+            ui.label("📊");
+            if ui.button("数据库状态").clicked() {
+                // 可以在这里添加详细的数据库状态窗口
+            }
+            
+            // 显示数据库统计信息（如果能够打开数据库）
+            if let Ok(db) = Database::new(&db_path) {
+                if let Ok((total_records, last_updated)) = db.get_stats() {
+                    ui.label(format!("记录数: {}", total_records));
+                    if last_updated != "无数据" {
+                        // 只显示日期部分，不显示完整时间戳
+                        if let Ok(datetime) = chrono::DateTime::parse_from_rfc3339(&last_updated) {
+                            let date_str = datetime.format("%Y-%m-%d %H:%M").to_string();
+                            ui.label(format!("更新: {}", date_str));
+                        } else {
+                            ui.label("更新: 最近");
+                        }
+                    }
+                }
+            }
+        } else {
+            ui.label("🔍 首次扫描将创建数据库");
+        }
     }
 
     pub fn show_folder_grid(&mut self, ui: &mut egui::Ui) {
@@ -386,6 +423,10 @@ impl ClearTabState {
                 if folder == "__SCAN_COMPLETE__" {
                     self.is_scanning = false;
                     self.status = Some("扫描完成".to_string());
+                } else if folder.starts_with("__STATUS__") {
+                    // 处理状态消息
+                    let status_msg = folder.strip_prefix("__STATUS__").unwrap_or(&folder);
+                    self.status = Some(status_msg.to_string());
                 } else {
                     self.folder_data.push((folder, size));
                 }
@@ -438,10 +479,30 @@ impl ClearTabState {
 
     // 设置选中的AppData文件夹
     pub fn set_selected_appdata_folder(&mut self, folder: String) {
-        self.selected_appdata_folder = folder;
+        self.selected_appdata_folder = folder.clone();
         self.folder_data.clear();
         self.is_scanning = false;
         self.status = Some("未扫描".to_string());
+
+        // 尝试加载数据库缓存（如果有）
+        if let Ok(db) = crate::database::Database::new("appdata_cleaner.db") {
+            if db.has_data_for_type(&folder).unwrap_or(false) {
+                // 有缓存则直接加载
+                if let Ok(records) = db.get_folders_by_type(&folder) {
+                    self.folder_data = records.iter().map(|r| (r.folder_name.clone(), r.folder_size)).collect();
+                    self.is_scanning = false;
+                    self.status = Some("已加载缓存".to_string());
+                    return;
+                }
+            }
+        }
+        // 没有缓存则自动触发扫描
+        self.is_scanning = true;
+        self.status = Some("扫描中...".to_string());
+        if let Some(tx) = self.tx.clone() {
+            let folder_type = self.selected_appdata_folder.clone();
+            crate::scanner::scan_appdata(tx, &folder_type);
+        }
     }
 
     // 更新文件夹描述
