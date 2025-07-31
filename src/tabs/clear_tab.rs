@@ -267,14 +267,14 @@ impl ClearTabState {
                 if ui.button("名称正序").clicked() {
                     self.sort_criterion = Some("name".to_string());
                     self.sort_order = Some("asc".to_string());
+                }         
+                if ui.button("名称倒序").clicked() {
+                    self.sort_criterion = Some("name".to_string());
+                    self.sort_order = Some("desc".to_string());
                 }
                 if ui.button("大小正序").clicked() {
                     self.sort_criterion = Some("size".to_string());
                     self.sort_order = Some("asc".to_string());
-                }
-                if ui.button("名称倒序").clicked() {
-                    self.sort_criterion = Some("name".to_string());
-                    self.sort_order = Some("desc".to_string());
                 }
                 if ui.button("大小倒序").clicked() {
                     self.sort_criterion = Some("size".to_string());
