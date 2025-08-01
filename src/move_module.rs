@@ -12,20 +12,20 @@ use walkdir::WalkDir;
 
 pub struct MoveModule {
     pub show_window: bool,
-    pub folder_name: String,            // 源文件夹名（相对路径）
-    pub selected_path: Option<PathBuf>, // 目标路径
-    pub progress: f32,                  // 复制进度
-    pub status_message: Option<String>, // 操作状态
+    pub folder_name: String,                         // 源文件夹名（相对路径）
+    pub selected_path: Option<PathBuf>,              // 目标路径
+    pub progress: f32,                               // 复制进度
+    pub status_message: Option<String>,              // 操作状态
     pub receiver: Option<Receiver<ProgressMessage>>, // 非阻塞消息接收器
 }
 
 #[derive(Debug, Clone)]
 pub enum ProgressMessage {
-    Progress(f32, String),              // 进度百分比和状态消息
-    HashVerificationStart,              // 开始哈希校验
-    HashVerificationProgress(f32),      // 哈希校验进度
-    Success(String),                    // 成功完成
-    Error(String),                      // 错误消息
+    Progress(f32, String),         // 进度百分比和状态消息
+    HashVerificationStart,         // 开始哈希校验
+    HashVerificationProgress(f32), // 哈希校验进度
+    Success(String),               // 成功完成
+    Error(String),                 // 错误消息
 }
 
 impl Default for MoveModule {
@@ -60,7 +60,8 @@ impl MoveModule {
                     }
                     ProgressMessage::HashVerificationProgress(progress) => {
                         self.progress = progress;
-                        self.status_message = Some(format!("哈希校验进度: {:.1}%", progress * 100.0));
+                        self.status_message =
+                            Some(format!("哈希校验进度: {:.1}%", progress * 100.0));
                         ctx.request_repaint();
                     }
                     ProgressMessage::Success(msg) => {
@@ -79,7 +80,7 @@ impl MoveModule {
                 }
             }
             if !should_clear_receiver {
-            // 操作未结束，放回 self.receiver
+                // 操作未结束，放回 self.receiver
                 self.receiver = receiver;
             }
         }
@@ -120,7 +121,10 @@ impl MoveModule {
                     // 操作按钮
                     let can_start = self.receiver.is_none(); // 只有在没有正在进行的操作时才能开始
                     ui.horizontal(|ui| {
-                        if ui.add_enabled(can_start, egui::Button::new("确定")).clicked() {
+                        if ui
+                            .add_enabled(can_start, egui::Button::new("确定"))
+                            .clicked()
+                        {
                             if let Some(target_path) = &self.selected_path {
                                 self.start_move_folder(target_path.clone());
                             } else {
@@ -128,7 +132,10 @@ impl MoveModule {
                             }
                         }
 
-                        if ui.add_enabled(can_start, egui::Button::new("取消")).clicked() {
+                        if ui
+                            .add_enabled(can_start, egui::Button::new("取消"))
+                            .clicked()
+                        {
                             self.show_window = false;
                         }
                     });
@@ -146,7 +153,11 @@ impl MoveModule {
 
         // 调试日志打印完整路径
         println!("完整源文件夹路径: {}", source_path.display());
-        logger::log_info(&format!("开始移动文件夹: {} -> {}", source_path.display(), target_path.display()));
+        logger::log_info(&format!(
+            "开始移动文件夹: {} -> {}",
+            source_path.display(),
+            target_path.display()
+        ));
 
         // 验证源文件夹是否存在
         if !source_path.exists() {
@@ -186,14 +197,19 @@ impl MoveModule {
 
             // 步骤 3: 哈希校验
             let _ = tx.send(ProgressMessage::HashVerificationStart);
-            
+
             match verify_directory_hashes(&source_path, &target_folder_path, &tx) {
                 Ok(true) => {
                     logger::log_info("哈希校验通过，所有文件完全一致");
-                    let _ = tx.send(ProgressMessage::Progress(0.9, "哈希校验通过，开始删除源目录...".to_string()));
+                    let _ = tx.send(ProgressMessage::Progress(
+                        0.9,
+                        "哈希校验通过，开始删除源目录...".to_string(),
+                    ));
                 }
                 Ok(false) => {
-                    let _ = tx.send(ProgressMessage::Error("哈希校验失败！源文件和目标文件不一致，操作已终止".to_string()));
+                    let _ = tx.send(ProgressMessage::Error(
+                        "哈希校验失败！源文件和目标文件不一致，操作已终止".to_string(),
+                    ));
                     return;
                 }
                 Err(err) => {
@@ -208,7 +224,10 @@ impl MoveModule {
                 return;
             }
 
-            let _ = tx.send(ProgressMessage::Progress(0.95, "正在创建符号链接...".to_string()));
+            let _ = tx.send(ProgressMessage::Progress(
+                0.95,
+                "正在创建符号链接...".to_string(),
+            ));
 
             // 步骤 5: 创建符号链接
             if cfg!(target_os = "windows") {
@@ -249,7 +268,10 @@ impl MoveModule {
                         let _ = tx.send(ProgressMessage::Error(err_msg));
                     }
                     Err(err) => {
-                        let _ = tx.send(ProgressMessage::Error(format!("符号链接命令执行失败: {}", err)));
+                        let _ = tx.send(ProgressMessage::Error(format!(
+                            "符号链接命令执行失败: {}",
+                            err
+                        )));
                     }
                 }
             } else {
@@ -258,7 +280,8 @@ impl MoveModule {
                 {
                     use std::os::unix::fs::symlink;
                     if let Err(err) = symlink(&target_folder_path, &source_path) {
-                        let _ = tx.send(ProgressMessage::Error(format!("创建符号链接失败: {}", err)));
+                        let _ =
+                            tx.send(ProgressMessage::Error(format!("创建符号链接失败: {}", err)));
                     } else {
                         let success_msg = format!(
                             "移动文件夹操作成功完成！\n源目录: {}\n目标目录: {}\n符号链接已创建",
@@ -269,10 +292,12 @@ impl MoveModule {
                         let _ = tx.send(ProgressMessage::Success(success_msg));
                     }
                 }
-                
+
                 #[cfg(not(unix))]
                 {
-                    let _ = tx.send(ProgressMessage::Error("此平台不支持符号链接创建".to_string()));
+                    let _ = tx.send(ProgressMessage::Error(
+                        "此平台不支持符号链接创建".to_string(),
+                    ));
                 }
             }
         });
@@ -289,11 +314,17 @@ fn copy_dir_with_progress(
     let total_files = count_files_in_directory(source)?;
     let mut copied_files = 0;
 
-    let _ = tx.send(ProgressMessage::Progress(0.0, format!("开始复制，共 {} 个文件...", total_files)));
+    let _ = tx.send(ProgressMessage::Progress(
+        0.0,
+        format!("开始复制，共 {} 个文件...", total_files),
+    ));
 
     copy_dir_recursive(source, target, tx, &mut copied_files, total_files)?;
 
-    let _ = tx.send(ProgressMessage::Progress(0.8, "文件复制完成，准备哈希校验...".to_string()));
+    let _ = tx.send(ProgressMessage::Progress(
+        0.8,
+        "文件复制完成，准备哈希校验...".to_string(),
+    ));
     Ok(())
 }
 
@@ -319,7 +350,8 @@ fn copy_dir_recursive(
         let dest_path = target.join(entry.file_name());
 
         if file_type.is_dir() {
-            fs::create_dir_all(&dest_path).map_err(|err| format!("无法创建目录 {}: {}", dest_path.display(), err))?;
+            fs::create_dir_all(&dest_path)
+                .map_err(|err| format!("无法创建目录 {}: {}", dest_path.display(), err))?;
             copy_dir_recursive(&src_path, &dest_path, tx, copied_files, total_files)?;
         } else {
             println!(
@@ -327,16 +359,26 @@ fn copy_dir_recursive(
                 src_path.display(),
                 dest_path.display()
             );
-            
+
             fs::copy(&src_path, &dest_path).map_err(|err| {
-                format!("无法复制文件 {} 到 {}: {}", src_path.display(), dest_path.display(), err)
+                format!(
+                    "无法复制文件 {} 到 {}: {}",
+                    src_path.display(),
+                    dest_path.display(),
+                    err
+                )
             })?;
 
             *copied_files += 1;
             let progress = (*copied_files as f32 / total_files as f32) * 0.8; // 复制阶段占80%
             let _ = tx.send(ProgressMessage::Progress(
                 progress,
-                format!("已复制 {}/{} 个文件: {}", *copied_files, total_files, src_path.file_name().unwrap_or_default().to_string_lossy())
+                format!(
+                    "已复制 {}/{} 个文件: {}",
+                    *copied_files,
+                    total_files,
+                    src_path.file_name().unwrap_or_default().to_string_lossy()
+                ),
             ));
         }
     }
@@ -375,9 +417,11 @@ fn verify_directory_hashes(
 
     for (source_file, target_file) in source_files.iter().zip(target_files.iter()) {
         // 计算相对路径以确保对应关系正确
-        let source_rel = source_file.strip_prefix(source_dir)
+        let source_rel = source_file
+            .strip_prefix(source_dir)
             .map_err(|_| "无法获取源文件相对路径".to_string())?;
-        let target_rel = target_file.strip_prefix(target_dir)
+        let target_rel = target_file
+            .strip_prefix(target_dir)
             .map_err(|_| "无法获取目标文件相对路径".to_string())?;
 
         if source_rel != target_rel {
@@ -421,21 +465,22 @@ fn collect_all_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
 fn calculate_file_hash(file_path: &Path) -> Result<String, String> {
     let mut file = fs::File::open(file_path)
         .map_err(|err| format!("无法打开文件 {}: {}", file_path.display(), err))?;
-    
+
     let mut hasher = Sha256::new();
     let mut buffer = [0; 8192]; // 8KB buffer
-    
+
     loop {
-        let bytes_read = file.read(&mut buffer)
+        let bytes_read = file
+            .read(&mut buffer)
             .map_err(|err| format!("读取文件 {} 失败: {}", file_path.display(), err))?;
-        
+
         if bytes_read == 0 {
             break;
         }
-        
+
         hasher.update(&buffer[..bytes_read]);
     }
-    
+
     Ok(format!("{:x}", hasher.finalize()))
 }
 
@@ -451,17 +496,17 @@ mod tests {
         let test_content = b"Hello, World!";
         let temp_dir = std::env::temp_dir();
         let test_file = temp_dir.join("test_hash_file.txt");
-        
+
         // 写入测试内容
         fs::write(&test_file, test_content).unwrap();
-        
+
         // 计算哈希
         let hash = calculate_file_hash(&test_file).unwrap();
-        
+
         // 验证哈希值（SHA-256 of "Hello, World!")
         let expected_hash = "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f";
         assert_eq!(hash, expected_hash);
-        
+
         // 清理
         fs::remove_file(&test_file).unwrap();
     }
@@ -471,20 +516,20 @@ mod tests {
         // 创建临时目录和文件进行测试
         let temp_dir = std::env::temp_dir().join("test_count_files");
         fs::create_dir_all(&temp_dir).unwrap();
-        
+
         // 创建一些测试文件
         fs::write(temp_dir.join("file1.txt"), "content1").unwrap();
         fs::write(temp_dir.join("file2.txt"), "content2").unwrap();
-        
+
         // 创建子目录
         let sub_dir = temp_dir.join("subdir");
         fs::create_dir_all(&sub_dir).unwrap();
         fs::write(sub_dir.join("file3.txt"), "content3").unwrap();
-        
+
         // 测试文件计数
         let count = count_files_in_directory(&temp_dir).unwrap();
         assert_eq!(count, 3); // 应该有3个文件
-        
+
         // 清理
         fs::remove_dir_all(&temp_dir).unwrap();
     }
@@ -494,28 +539,29 @@ mod tests {
         // 创建临时目录和文件进行测试
         let temp_dir = std::env::temp_dir().join("test_collect_files");
         fs::create_dir_all(&temp_dir).unwrap();
-        
+
         // 创建一些测试文件
         fs::write(temp_dir.join("file1.txt"), "content1").unwrap();
         fs::write(temp_dir.join("file2.txt"), "content2").unwrap();
-        
+
         // 创建子目录
         let sub_dir = temp_dir.join("subdir");
         fs::create_dir_all(&sub_dir).unwrap();
         fs::write(sub_dir.join("file3.txt"), "content3").unwrap();
-        
+
         // 测试文件收集
         let files = collect_all_files(&temp_dir).unwrap();
         assert_eq!(files.len(), 3);
-        
+
         // 验证文件路径
-        let file_names: Vec<String> = files.iter()
+        let file_names: Vec<String> = files
+            .iter()
             .map(|p| p.file_name().unwrap().to_string_lossy().to_string())
             .collect();
         assert!(file_names.contains(&"file1.txt".to_string()));
         assert!(file_names.contains(&"file2.txt".to_string()));
         assert!(file_names.contains(&"file3.txt".to_string()));
-        
+
         // 清理
         fs::remove_dir_all(&temp_dir).unwrap();
     }
