@@ -23,7 +23,7 @@ fn main() -> Result<(), eframe::Error> {
 
     let options = eframe::NativeOptions::default();
     eframe::run_native(
-        "AppData 清理器",
+        "CleanAppData 清理器",
         options,
         Box::new(|_| {
             logger::log_info("应用程序启动");

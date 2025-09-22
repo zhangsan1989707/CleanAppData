@@ -29,7 +29,7 @@ jobs:
       - name: 上传文件
         uses: actions/upload-artifact@v4
         with:
-          name: AppDataCleaner
+          name: CleanAppData
           path: |
-            target\release\AppDataCleaner.exe
-            target\release\AppDataCleaner.pdb
+            target\release\CleanAppData.exe
+            target\release\CleanAppData.pdb

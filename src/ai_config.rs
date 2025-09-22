@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 use std::sync::mpsc::Sender;
 use std::error::Error;
+use std::env; // 添加环境变量相关的导入
 use crate::logger::{self, LogContext};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -116,6 +117,10 @@ pub mod config {
         }
     }
 
+    // 导入环境变量相关的包
+    use std::env;
+    
+    // 在config模块中添加从环境变量加载配置的方法
     impl AIConfig {
         /// 创建新的默认配置
         pub fn new() -> Self {
@@ -130,7 +135,31 @@ pub mod config {
         /// 从文件加载配置
         pub fn load_from_file(path: &str) -> Result<Self, Box<dyn Error>> {
             let content = std::fs::read_to_string(path)?;
-            Ok(serde_yaml::from_str(&content)?)
+            Ok(serde_yaml::from_str(&content)?)    
+        }
+
+        /// 从环境变量加载配置
+        pub fn load_from_env() -> Option<Self> {
+            // 检查是否设置了AI_PROVIDER为bailian
+            if let Ok(provider) = env::var("AI_PROVIDER") {
+                if provider == "bailian" {
+                    let api_key = env::var("DASHSCOPE_API_KEY").ok();
+                    let model = env::var("AI_MODEL").ok();
+                    let api_url = env::var("BAILIAN_API_URL").ok();
+                     
+                    // 确保必需的环境变量存在
+                    if let (Some(api_key), Some(model), Some(api_url)) = (api_key, model, api_url) {
+                        let mut config = Self::default();
+                        config.model.url = api_url;
+                        config.model.api_key = api_key;
+                        config.model.model = model;
+                         
+                        return Some(config);
+                    }
+                }
+            }
+             
+            None
         }
 
         /// 保存配置到文件

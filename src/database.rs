@@ -191,7 +191,7 @@ impl Database {
 
 /// 获取默认数据库路径
 pub fn get_default_db_path() -> String {
-    "appdata_cleaner.db".to_string()
+    "cleanappdata.db".to_string()
 }
 
 /// 检查数据库文件是否存在

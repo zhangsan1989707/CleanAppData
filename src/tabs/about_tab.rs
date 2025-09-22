@@ -15,26 +15,26 @@ pub fn show_about_window(ctx: &egui::Context, open: &mut bool) {
 pub fn show_about_content(ui: &mut egui::Ui) {
     let version = env!("CARGO_PKG_VERSION");
 
-    ui.heading("AppData Cleaner");
+    ui.heading("CleanAppData");
     ui.add_space(10.0);
 
     ui.horizontal(|ui| {
         ui.label("作者: ");
-        ui.hyperlink_to("TC999", "https://github.com/TC999");
+        ui.hyperlink_to("zhangsan1989707", "https://github.com/zhangsan1989707");
     });
 
     ui.add_space(5.0);
 
     ui.horizontal(|ui| {
         ui.label("源代码仓库:");
-        ui.hyperlink("https://github.com/TC999/AppDataCleaner");
+        ui.hyperlink("https://github.com/zhangsan1989707/CleanAppData.git");
     });
 
     ui.add_space(5.0);
 
     ui.horizontal(|ui| {
         ui.label("议题反馈:");
-        ui.hyperlink_to("GitHub Issues", "https://github.com/TC999/AppDataCleaner/issues");
+        ui.hyperlink_to("GitHub Issues", "https://github.com/zhangsan1989707/CleanAppData/issues");
     });
 
     ui.add_space(10.0);

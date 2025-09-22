@@ -1,5 +1,5 @@
 [package]
-name = "AppDataCleaner"
+name = "CleanAppData"
 version = "1.0.6-b6"
 edition = "2021"
 

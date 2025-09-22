@@ -37,10 +37,10 @@ jobs:
       - name: 上传文件
         uses: actions/upload-artifact@v4
         with:
-          name: AppDataCleaner
+          name: CleanAppData
           path: |
-            target\release\AppDataCleaner.exe
-            target\release\AppDataCleaner.pdb
+            target\release\CleanAppData.exe
+            target\release\CleanAppData.pdb
 
   release:
     name: 发行
@@ -55,12 +55,12 @@ jobs:
           path: artifacts
 
       - name: 创建压缩包
-        run: cd artifacts/AppDataCleaner && zip -r "../../AppDataCleaner.zip" .
+        run: cd artifacts/CleanAppData && zip -r "../../CleanAppData.zip" .
 
       - name: 移动文件
         run: |
-          mv artifacts/AppDataCleaner/AppDataCleaner.exe AppDataCleaner.exe
-          mv artifacts/AppDataCleaner/AppDataCleaner.pdb AppDataCleaner.pdb
+          mv artifacts/CleanAppData/CleanAppData.exe CleanAppData.exe
+          mv artifacts/CleanAppData/CleanAppData.pdb CleanAppData.pdb
 
       - name: 自动发布发行版
         uses: softprops/action-gh-release@v2
@@ -70,6 +70,6 @@ jobs:
           draft: false
           make_latest: true
           files: |
-            AppDataCleaner.zip
-            AppDataCleaner.exe
-            AppDataCleaner.pdb
+            CleanAppData.zip
+            CleanAppData.exe
+            CleanAppData.pdb

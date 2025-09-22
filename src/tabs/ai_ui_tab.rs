@@ -139,7 +139,7 @@ impl AIConfigurationUI {
             ui.heading("API设置");
             ui.hyperlink_to(
                 "如何获取 API 密钥?",
-                "https://github.com/TC999/AppDataCleaner/issues/48#issuecomment-2674567816",
+                "https://github.com/zhangsan1989707/CleanAppData/issues/48#issuecomment-2674567816",
             );
         });
 

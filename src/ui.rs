@@ -31,15 +31,21 @@ impl Default for AppDataCleaner {
     fn default() -> Self {
         let (ai_tx, ai_rx) = std::sync::mpsc::channel();  // 创建 AI 通信通道
         
-        // 加载AI配置
-        let ai_config = match AIConfig::load_from_file("folders_description.yaml") {
-            Ok(config) => {
-                logger::log_info("已成功加载AI配置文件");
+        // 加载AI配置 - 优先级: 环境变量 > 配置文件 > 默认配置
+        let ai_config = match AIConfig::load_from_env() {
+            Some(config) => {
+                logger::log_info("已从环境变量加载AI配置");
                 config
-            }
-            Err(_) => {
-                logger::log_info("未找到配置文件，使用默认配置");
-                AIConfig::default()
+            },
+            None => match AIConfig::load_from_file("folders_description.yaml") {
+                Ok(config) => {
+                    logger::log_info("已成功加载AI配置文件");
+                    config
+                }
+                Err(_) => {
+                    logger::log_info("未找到配置文件，使用默认配置");
+                    AIConfig::default()
+                }
             }
         };
 

@@ -58,7 +58,7 @@ pub fn init_logger(log_to_file: bool) {
             let _ = WriteLogger::init(
                 LevelFilter::Info,
                 Config::default(),
-                File::create("appdata_cleaner.log").expect("无法创建日志文件"),
+                File::create("cleanappdata.log").expect("无法创建日志文件"),
             );
         } else {
             let _ = SimpleLogger::init(LevelFilter::Info, Config::default());

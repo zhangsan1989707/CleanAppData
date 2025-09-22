@@ -1,4 +1,4 @@
-# [AppDataCleaner - 适用于 Windows 系统的 appdata 文件夹清理工具][repo-url]
+# [CleanAppData - 适用于 Windows 系统的 appdata 文件夹清理工具][repo-url]
 
  [![GitHub issues][issues-image]][issues-url]
  [![Github Pulls][pulls-image]][pulls-url]
@@ -28,19 +28,19 @@
 ## 使用方法
 
 ### 📦下载exe文件
-- [发行版](https://github.com/TC999/AppDataCleaner/releases/latest)
-- [CI 构建](https://github.com/TC999/AppDataCleaner/actions/workflows/ci.yml)
-- [Windows Cleaner（内置，版本手动更新）](https://github.com/darkmatter2048/WindowsCleaner)
+- [发行版](https://github.com/zhangsan1989707/CleanAppData/releases/latest)
+- [CI 构建](https://github.com/zhangsan1989707/CleanAppData/actions/workflows/ci.yml)
+
 
 以上两种方法二选一，下载后直接解压运行即可。
 
 ## 星标历史
 
-<a href="https://star-history.com/#TC999/AppDataCleaner&Date">
+<a href="https://star-history.com/#zhangsan1989707/CleanAppData&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=TC999/AppDataCleaner&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=TC999/AppDataCleaner&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=TC999/AppDataCleaner&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=zhangsan1989707/CleanAppData&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=zhangsan1989707/CleanAppData&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=zhangsan1989707/CleanAppData&type=Date" />
  </picture>
 </a>
 
@@ -54,18 +54,18 @@
 #### 关于文件夹描述
 程序默认不带任何规则，请自行下载规则并放到软件根目录，后续出模板
 
-这是[作者本人维护的描述规则](https://github.com/TC999/TC999-subscription)
+这是[作者本人维护的描述规则](https://github.com/zhangsan1989707/zhangsan1989707-subscription)
 
 ### 从源码编译
 #### 本地编译
 - 安装 Rust
 - 克隆此仓库
 ```
-git clone https://github.com/TC999/AppDataCleaner.git
+git clone https://github.com/zhangsan1989707/CleanAppData.git
 ```
 - 进入项目目录
 ```
-cd AppDataCleaner
+cd CleanAppData
 ```
 - 运行
 ```
@@ -95,7 +95,7 @@ cargo build --release
 - [x] 项目网站(使用 github pages 实现)
 - [ ] 其他……
 
-或者前往[这个讨论](https://github.com/TC999/AppDataCleaner/discussions/7)查看更多待办事项。
+或者前往[这个讨论](https://github.com/zhangsan1989707/CleanAppData/discussions/7)查看更多待办事项。
 ## ✨ 贡献
 > [!note]
 >
@@ -108,14 +108,14 @@ cargo build --release
 
 详情请参考[贡献指南](CONTRIBUTING.md)。
 ## 鸣谢
-- [TC999](https://github.com/TC999) - 作者
+- [zhangsan1989707](https://github.com/zhangsan1989707) - 作者
 - [ChatGPT](https://chatgpt.com/) - 代码编写
 - [egui](https://github.com/emilk/egui) - GUI 框架
 - [darkmatter2048](https://github.com/darkmatter2048) - CDN 提供
 
 ### 所有贡献者
 
-[![贡献者](https://contrib.rocks/image?repo=TC999/AppDataCleaner)](https://github.com/TC999/AppDataCleaner/graphs/contributors)
+[![贡献者](https://contrib.rocks/image?repo=zhangsan1989707/CleanAppData)](https://github.com/zhangsan1989707/CleanAppData/graphs/contributors)
 
 ## 🤝 支持开发者
 
@@ -127,32 +127,32 @@ cargo build --release
 本项目采用 [GPLv3 许可证](LICENSE)。
 
 <!-- 链接开始 -->
-[issues-url]: https://github.com/TC999/AppDataCleaner/issues "议题"
-[issues-image]: https://img.shields.io/github/issues/TC999/AppDataCleaner?style=flat-square&logo=github&label=议题
+[issues-url]: https://github.com/zhangsan1989707/CleanAppData/issues "议题"
+[issues-image]: https://img.shields.io/github/issues/zhangsan1989707/CleanAppData?style=flat-square&logo=github&label=议题
 
-[pulls-url]: https://github.com/TC999/AppDataCleaner/pulls "拉取请求"
-[pulls-image]: https://img.shields.io/github/issues-pr-raw/TC999/AppDataCleaner?style=flat&logo=github&%3Fcolor%3Dgreen&label=%E6%8B%89%E5%8F%96%E8%AF%B7%E6%B1%82
+[pulls-url]: https://github.com/zhangsan1989707/CleanAppData/pulls "拉取请求"
+[pulls-image]: https://img.shields.io/github/issues-pr-raw/zhangsan1989707/CleanAppData?style=flat&logo=github&%3Fcolor%3Dgreen&label=%E6%8B%89%E5%8F%96%E8%AF%B7%E6%B1%82
 
-[stars-url]: https://github.com/TC999/AppDataCleaner/stargazers "星标"
-[stars-image]: https://img.shields.io/github/stars/TC999/AppDataCleaner?style=flat-square&logo=github&label=星标
+[stars-url]: https://github.com/zhangsan1989707/CleanAppData/stargazers "星标"
+[stars-image]: https://img.shields.io/github/stars/zhangsan1989707/CleanAppData?style=flat-square&logo=github&label=星标
 
-[forks-url]: https://github.com/TC999/AppDataCleaner/fork "复刻"
-[forks-image]: https://img.shields.io/github/forks/TC999/AppDataCleaner?style=flat-square&logo=github&label=复刻
+[forks-url]: https://github.com/zhangsan1989707/CleanAppData/fork "复刻"
+[forks-image]: https://img.shields.io/github/forks/zhangsan1989707/CleanAppData?style=flat-square&logo=github&label=复刻
 
-[discussions-url]: https://github.com/TC999/AppDataCleaner/discussions "讨论"
+[discussions-url]: https://github.com/zhangsan1989707/CleanAppData/discussions "讨论"
 
 [hits-url]: https://hits.dwyl.com/ "访问量"
-[hits-image]: https://custom-icon-badges.demolab.com/endpoint?url=https%3A%2F%2Fhits.dwyl.com%2FTC999%2FAppDataCleaner.json%3Fcolor%3Dgreen&label=%E8%AE%BF%E9%97%AE%E9%87%8F&logo=graph
+[hits-image]: https://custom-icon-badges.demolab.com/endpoint?url=https%3A%2F%2Fhits.dwyl.com%2Fzhangsan1989707%2FCleanAppData.json%3Fcolor%3Dgreen&label=%E8%AE%BF%E9%97%AE%E9%87%8F&logo=graph
 
-[repo-url]: https://github.com/TC999/AppDataCleaner "仓库地址"
+[repo-url]: https://github.com/zhangsan1989707/CleanAppData "仓库地址"
 
-[repo-size-image]:https://img.shields.io/github/repo-size/TC999/AppDataCleaner?style=flat-square&label=%E4%BB%93%E5%BA%93%E5%A4%A7%E5%B0%8F
+[repo-size-image]:https://img.shields.io/github/repo-size/zhangsan1989707/CleanAppData?style=flat-square&label=%E4%BB%93%E5%BA%93%E5%A4%A7%E5%B0%8F
 
 
-[download-url]: https://github.com/TC999/AppDataCleaner/releases/latest "下载"
-[download-image]: https://img.shields.io/github/downloads/TC999/AppDataCleaner/total?style=flat-square&logo=github&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E6%95%B0 "总下载数"
+[download-url]: https://github.com/zhangsan1989707/CleanAppData/releases/latest "下载"
+[download-image]: https://img.shields.io/github/downloads/zhangsan1989707/CleanAppData/total?style=flat-square&logo=github&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E6%95%B0 "总下载数"
 
-[license-url]: https://github.com/TC999/AppDataCleaner/blob/master/LICENSE "许可证"
-[license-image]: https://custom-icon-badges.demolab.com/github/license/TC999/AppDataCleaner?style=flat&logo=law&label=%E8%AE%B8%E5%8F%AF%E8%AF%81
+[license-url]: https://github.com/zhangsan1989707/CleanAppData/blob/master/LICENSE "许可证"
+[license-image]: https://custom-icon-badges.demolab.com/github/license/zhangsan1989707/CleanAppData?style=flat&logo=law&label=%E8%AE%B8%E5%8F%AF%E8%AF%81
 
 [github-doc-gpg-url]: https://docs.github.com/zh/authentication/managing-commit-signature-verification/generating-a-new-gpg-key "GPG签名"
