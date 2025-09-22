@@ -3,14 +3,12 @@ use crate::ai_config::{AIConfig, AIHandler};
 use eframe::egui;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Receiver;
-use crate::tabs::about_tab;
 use crate::tabs::ai_ui_tab::AIConfigurationUI;
 use crate::tabs::clear_tab::ClearTabState;
 
 pub struct AppDataCleaner {
     // 标签页状态
     current_tab: String,             // 当前选中的标签页
-    show_about_window: bool,
 
     // 日志相关字段
     is_logging_enabled: bool,
@@ -105,7 +103,6 @@ impl Default for AppDataCleaner {
 
         Self {
             // 界面状态初始化
-            show_about_window: false,
             current_tab: "主页".to_string(),  // 默认选中主页标签
 
             // 日志相关初始化
@@ -152,7 +149,6 @@ impl AppDataCleaner {
             ui.horizontal(|ui| {  
                 // 左侧标签页和选项
                 ui.selectable_value(&mut self.current_tab, "主页".to_string(), "主页");
-                ui.selectable_value(&mut self.current_tab, "关于".to_string(), "关于");
                 ui.selectable_value(&mut self.current_tab, "AI配置".to_string(), "AI配置");
                 ui.label("|"); // 添加分隔符
                 ui.checkbox(&mut self.is_logging_enabled, "启用日志");
@@ -222,25 +218,19 @@ impl AppDataCleaner {
         self.show_top_menu(ctx);
 
         // 主面板 - 根据当前标签页显示不同内容
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.current_tab.as_str() {
-                "主页" => self.clear_tab.show(ui),
-                "关于" => about_tab::handle_about_tab(ui),
-                "AI配置" => self.ai_ui.draw_config_ui(ui),
-                _ => self.clear_tab.show(ui),
-            }
-        });
+            egui::CentralPanel::default().show(ctx, |ui| {
+                match self.current_tab.as_str() {
+                    "主页" => self.clear_tab.show(ui),
+                    "AI配置" => self.ai_ui.draw_config_ui(ui),
+                    _ => self.clear_tab.show(ui),
+                }
+            });
 
         // 窗口显示
         self.show_windows(ctx);
     }
 
     fn show_windows(&mut self, ctx: &egui::Context) {
-        // 关于窗口
-        if self.show_about_window {
-            about_tab::show_about_window(ctx, &mut self.show_about_window);
-        }
-
         // AI配置窗口(使用重构后的AI UI模块)
         self.ai_ui.show(ctx);
 
