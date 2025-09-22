@@ -1,0 +1,6 @@
+[build]
+# 仅检查代码语法，不实际编译链接
+doc-scrape-examples = false
+
+[target.x86_64-pc-windows-msvc]
+# 尝试禁用某些需要链接器的功能

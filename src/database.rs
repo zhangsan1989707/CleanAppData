@@ -4,6 +4,7 @@ use rusqlite::{params, Connection, Result as SqliteResult};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code, unused_fields)]
 pub struct FolderRecord {
     pub id: Option<i64>,
     pub folder_type: String,    // Roaming, Local, LocalLow
@@ -87,6 +88,7 @@ impl Database {
     }
 
     /// 插入或更新文件夹记录
+    #[allow(dead_code)]
     pub fn upsert_folder(&self, record: &FolderRecord) -> SqliteResult<()> {
         let now = Utc::now().to_rfc3339();
         

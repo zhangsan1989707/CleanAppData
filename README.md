@@ -18,9 +18,7 @@
 <p>本工具完全开源免费，欢迎各位大佬贡献代码。</p>
 </details>
 
-> [!warning]
->
-> 本项目从未发布至 GitCode，如您发现请截图并保留证据
+
 
 ## 🖥系统要求
 - Windows 8 及以上
@@ -51,10 +49,8 @@
 - 双击运行
 - 点击“立即扫描”,软件会自动扫描 Appdata 文件夹，并显示扫描结果。
 - 自行选择“删除”或“移动”（暂未实现）
-#### 关于文件夹描述
-程序默认不带任何规则，请自行下载规则并放到软件根目录，后续出模板
 
-这是[作者本人维护的描述规则](https://github.com/zhangsan1989707/zhangsan1989707-subscription)
+
 
 ### 从源码编译
 #### 本地编译
@@ -83,23 +79,11 @@ cargo build --release
 - `assets`: 资源文件目录(注：字体文件不可删除，否则运行会显示方块！)
 - `Cargo.toml`: 依赖管理文件
 
-## ✔ 待办
-- [x] 白名单模块（防止误删，保护重要数据
-- [x] 文件夹描述
-- [ ] 移动文件夹
-- [x] 打开文件夹（已成功
-- [ ] 多国语言支持（暂时不考虑，反正鬼佬也不用（不是
-- [ ] 优化界面
-- [ ] 优化代码
-- [ ] 添加软件图标
-- [x] 项目网站(使用 github pages 实现)
-- [ ] 其他……
+
 
 或者前往[这个讨论](https://github.com/zhangsan1989707/CleanAppData/discussions/7)查看更多待办事项。
-## ✨ 贡献
-> [!note]
->
-> 本仓库要求提交时验证GPG签名。[GPG签名设置方法][github-doc-gpg-url]
+
+
 
 1. 复刻本仓库
 2. 创建一个分支并以你修改的功能命名，注意每个功能单独一个代码文件（作为模块导入）
@@ -111,17 +95,7 @@ cargo build --release
 - [zhangsan1989707](https://github.com/zhangsan1989707) - 作者
 - [ChatGPT](https://chatgpt.com/) - 代码编写
 - [egui](https://github.com/emilk/egui) - GUI 框架
-- [darkmatter2048](https://github.com/darkmatter2048) - CDN 提供
 
-### 所有贡献者
-
-[![贡献者](https://contrib.rocks/image?repo=zhangsan1989707/CleanAppData)](https://github.com/zhangsan1989707/CleanAppData/graphs/contributors)
-
-## 🤝 支持开发者
-
-如果您喜欢这个项目，可以通过以下方式赞助我：[软件官网](http://adc.dyblog.online/donate.html)
-
-![微信赞助](./readme/wechat.png)
 
 ## 📝 许可证
 本项目采用 [GPLv3 许可证](LICENSE)。
@@ -155,4 +129,3 @@ cargo build --release
 [license-url]: https://github.com/zhangsan1989707/CleanAppData/blob/master/LICENSE "许可证"
 [license-image]: https://custom-icon-badges.demolab.com/github/license/zhangsan1989707/CleanAppData?style=flat&logo=law&label=%E8%AE%B8%E5%8F%AF%E8%AF%81
 
-[github-doc-gpg-url]: https://docs.github.com/zh/authentication/managing-commit-signature-verification/generating-a-new-gpg-key "GPG签名"

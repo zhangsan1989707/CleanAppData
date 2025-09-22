@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::time::Duration;
 use std::sync::mpsc::Sender;
 use std::error::Error;
-use std::env; // 添加环境变量相关的导入
 use crate::logger::{self, LogContext};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;

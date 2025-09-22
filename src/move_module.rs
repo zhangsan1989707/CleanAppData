@@ -43,10 +43,10 @@ impl Default for MoveModule {
 
 impl MoveModule {
     pub fn show_move_window(&mut self, ctx: &egui::Context) {
-        let mut receiver = self.receiver.take();
+        let receiver = self.receiver.take();
         // 非阻塞地检查进度消息
         if let Some(rx) = receiver.as_ref() {
-            let mut should_clear_receiver = false;
+            let should_clear_receiver = false;
             while let Ok(msg) = rx.try_recv() {
                 match msg {
                     ProgressMessage::Progress(progress, status) => {
@@ -488,7 +488,6 @@ fn calculate_file_hash(file_path: &Path) -> Result<String, String> {
 mod tests {
     use super::*;
     use std::fs;
-    use std::io::Write;
 
     #[test]
     fn test_calculate_file_hash() {
