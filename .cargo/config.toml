@@ -3,4 +3,5 @@
 doc-scrape-examples = false
 
 [target.x86_64-pc-windows-msvc]
-# 尝试禁用某些需要链接器的功能
+# 设置为Windows子系统以隐藏控制台窗口
+rustflags = ["-C", "link-args=/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"]
